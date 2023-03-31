@@ -1,6 +1,6 @@
 mod unittest;
 
-use std::ops::{Index};
+use std::ops::{Index, IndexMut};
 
 pub enum HashGridError {
     MismatchedSize(String)
@@ -14,27 +14,33 @@ pub enum PeriodicImage {
     RIGHT
 }
 
-pub struct HashGrid<T: Into<f64> + Clone, const N:usize, E: Clone> {
+/// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
+/// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
+/// size where the elements of type `E` are registered.
+pub struct HashGrid<T: Into<f32> + From<f32> + Copy, const N:usize, E: Clone> {
     grid: [usize; N],
-    cells:Vec<HashCell<T, N, E>>,
+    cells:Vec<HashCell<N, E>>,
+    pub dims: [T; N]
 }
 
+/// A representation of a cell contained inside a N-dimensional hash grid. It stores elements of type `E` and 
+/// can interact directly (with some limitations) or through the `HashGrid` struct.
 #[derive(Clone)]
-pub struct HashCell<T: Into<f64> + Clone, const N:usize, E: Clone> {
+pub struct HashCell<const N:usize, E: Clone> {
     dwellers: Vec<E>,
     neighbors: Vec<usize>,
-    boundaries:[T; N], 
     periodicity: [PeriodicImage; N] 
 }
 
-impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E> {
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
-    pub fn generate_uniform_grid(grid:[usize; N], boundaries:[T; N], periodicity:[PeriodicImage; N]) -> Self{
+    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[T; N]) -> Self{
         let e_size = grid.iter().fold(1, |acc, x| acc * x);
         let mut hashgrid = HashGrid {
             grid,
-            cells: vec![HashCell::<T, N, E>::new(boundaries, periodicity); e_size],
+            cells: vec![HashCell::<N, E>::new(periodicity); e_size],
+            dims
         };
         for i in 0..hashgrid.cells.len() {
             hashgrid.cells[i].neighbors = hashgrid.list_combinations(hashgrid.ndim_from_1dim(i), periodicity)
@@ -47,7 +53,7 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
 
     /// Creates a grid in the N-dimensional space starting from a collection of `HashCell`. The 
     /// number of cells should be equal to the expected size of the grid.
-    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<T, N, E>>) -> Result<HashGrid<T, N, E>, HashGridError>{
+    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:[T; N]) -> Result<HashGrid<T, N, E>, HashGridError>{
         let expected_length = grid.iter().fold(1, |acc, x| acc * x);
         if cells.len() !=  expected_length {
             return Err(HashGridError::MismatchedSize(
@@ -58,6 +64,7 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
         let mut hashgrid = HashGrid {
             grid,
             cells,
+            dims
         };
 
         for i in 0..hashgrid.cells.len() {
@@ -74,22 +81,41 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
     /// N-dimensional space
     pub fn get_dwellers(&self, coord:[usize; N]) -> &[E] {
         let indx = self.ndim_to_1dim(coord);
-        self.cells[indx].dwellers.as_slice()
+        self.cells[indx].get_dwellers()
     }
 
     /// Returns a mutable referece of the elements registered under a cell with coordinates `coord` in the
     /// N-dimensional space
-    pub fn get_dwellers_mut(&mut self, coord:[usize; N]) -> &mut [E] {
+    pub fn get_mut_dwellers(&mut self, coord:[usize; N]) -> &mut [E] {
         let indx = self.ndim_to_1dim(coord);
-        self.cells[indx].dwellers.as_mut_slice()
+        self.cells[indx].get_mut_dwellers()
     }
 
+    /// Sets the dwellers of a certain cell. It overwrites any previous registered dweller
     pub fn set_dwellers(&mut self, cell:[usize; N], dwellers:Vec<E>) {
         let indx = self.ndim_to_1dim(cell);
-        self.cells[indx].dwellers = dwellers
+        self.cells[indx].set_dwellers(dwellers)
     }
 
-    pub fn get_neighbors(&self, coord:[usize; N]) -> Vec<&HashCell<T, N, E>> {
+    pub fn add_dweller(&mut self, cell:[usize; N], dweller:E) {
+        let indx = self.ndim_to_1dim(cell);
+        self.cells[indx].add_dweller(dweller)    
+    }
+
+    pub fn drop_dweller(&mut self, indx:usize, cell:[usize; N]) {
+        let cell_index = self.ndim_to_1dim(cell);
+        self.cells[cell_index].drop_dweller(indx)
+    }
+
+    pub fn move_dweller(&mut self, indx:usize, from:[usize; N], to:[usize; N]) {
+        let from_indx = self.ndim_to_1dim(from);
+        let to_indx = self.ndim_to_1dim(to);
+        let dw = self.cells[from_indx].dwellers[indx].clone();
+        self.cells[from_indx].drop_dweller(indx);
+        self.cells[to_indx].add_dweller(dw);
+    }
+
+    pub fn get_neighbors(&self, coord:[usize; N]) -> Vec<&HashCell<N, E>> {
         let mut neighbors = Vec::new();
         let indx = self.ndim_to_1dim(coord);
         for cell_index in self.cells[indx].neighbors.iter() {
@@ -113,28 +139,20 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
         let mut neighbors = Vec::new();
         let indx = self.ndim_to_1dim(coord);
         for cell_index in self.cells[indx].neighbors.iter() {
-            neighbors.extend(&self.cells[*cell_index].dwellers)
+            neighbors.extend(self.cells[*cell_index].get_dwellers())
         } 
 
         neighbors
-    }
+    }   
 
-    pub fn move_dweller(&mut self, indx:usize, from:[usize; N], to:[usize; N]) {
-        let from_indx = self.ndim_to_1dim(from);
-        let to_indx = self.ndim_to_1dim(to);
-        let dw = self.cells[from_indx].dwellers[indx].clone();
-        self.cells[from_indx].dwellers.remove(indx);
-        self.cells[to_indx].dwellers.push(dw);
-    }
+    pub fn get_all_dwellers(&self) -> Vec<&E> {
+        let mut pop:Vec<&E> = Vec::new();
 
-    pub fn add_dweller(&mut self, d:E, cell:[usize; N]) {
-        let indx = self.ndim_to_1dim(cell);
-        self.cells[indx].dwellers.push(d);
-    }
+        for cell in self.cells.iter() {
+            pop.extend(cell.get_dwellers())
+        }
 
-    pub fn drop_dweller(&mut self, indx:usize, cell:[usize; N]) {
-        let cell_index = self.ndim_to_1dim(cell);
-        self.cells[cell_index].dwellers.remove(indx);
+        pop
     }
 
     pub fn update_neighbors(&mut self, cell:[usize; N], periodic_images:[PeriodicImage;N]) {
@@ -145,6 +163,28 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
                 .collect();
     }
 
+    pub fn population(&self) -> usize {
+        self.cells.iter().fold(0, |acc, x| acc + x.population())
+    }
+
+    pub fn size(&self) -> usize {
+        self.cells.len()
+    }
+
+    pub fn shape(&self) -> [usize; N] {
+        self.grid
+    }
+
+    pub fn cell_center(&self, cell:[usize; N]) -> [T; N] {
+        let mut center = [0.0; N];
+        for dim in 0..cell.len() {
+            center[dim] = (self.dims[dim].into() / self.grid[dim] as f32) * (cell[dim] as f32 + 0.5)
+
+        }
+
+        center.map(|x| x.into())
+    }
+    
     fn ndim_to_1dim(&self, coord:[usize; N]) -> usize {
         let mut index = 0;
         
@@ -221,30 +261,75 @@ impl<T: Into<f64> + Clone, const N: usize, E: Clone> HashGrid<T, N, E> {
     }
 }
 
-impl<T: Into<f64> + Clone, const N: usize, E: Clone> Index<usize> for HashGrid<T, N, E>{
-    type Output = HashCell<T, N, E>;
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> Index<usize> for HashGrid<T, N, E>{
+    type Output = HashCell<N, E>;
     fn index(&self, index: usize) -> &Self::Output {
         &self.cells[index]
     }
 }
 
-impl<T: Into<f64> + Clone, const N: usize, E: Clone> Index<[usize; N]> for HashGrid<T, N, E>{
-    type Output = HashCell<T, N, E>;
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> Index<[usize; N]> for HashGrid<T, N, E>{
+    type Output = HashCell<N, E>;
     fn index(&self, index: [usize; N]) -> &Self::Output {
         let indx = self.ndim_to_1dim(index);
         &self.cells[indx]
     }
 }
 
-impl<T: Into<f64> + Clone, const N:usize, E: Clone> HashCell<T, N, E> {
-    pub fn new (boundaries:[T; N], periodicity:[PeriodicImage; N]) -> Self{
+
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IndexMut<usize> for HashGrid<T, N, E>{
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.cells[index]
+    }
+}
+
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IndexMut<[usize; N]> for HashGrid<T, N, E>{
+    fn index_mut(&mut self, index: [usize; N]) -> &mut Self::Output {
+        let indx = self.ndim_to_1dim(index);
+        &mut self.cells[indx]
+    }
+}
+
+impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IntoIterator for HashGrid<T, N, E> {
+    type Item = HashCell<N, E>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cells.into_iter()
+    }
+}
+
+impl<const N:usize, E: Clone> HashCell<N, E> {
+    pub fn new (periodicity:[PeriodicImage; N]) -> Self{
         Self {
             dwellers: Vec::new(),
             neighbors: Vec::new(),
-            boundaries,
             periodicity
         }
     }
 
+    pub fn get_dwellers(&self) -> &[E] {
+        self.dwellers.as_slice()
+    }
+
+    pub fn get_mut_dwellers(&mut self) -> &mut [E] {
+        self.dwellers.as_mut_slice()
+    }
+
+    pub fn set_dwellers(&mut self, dwellers:Vec<E>) {
+        self.dwellers = dwellers
+    }
+
+    pub fn add_dweller(&mut self, dweller:E) {
+        self.dwellers.push(dweller)
+    }
+
+    pub fn drop_dweller(&mut self, indx:usize) {
+        self.dwellers.remove(indx);
+    }
+
+    pub fn population(&self) -> usize {
+        self.dwellers.len()
+    }
     
 }
