@@ -1,8 +1,8 @@
 use hashgrid::{HashGrid, PeriodicImage};
 
-fn simple_grid() -> HashGrid<f32, 3, u16>{
+fn simple_grid() -> HashGrid<3, u16>{
     // Create and populate a grid
-    let mut grid:HashGrid<f32, 3, u16> = HashGrid::generate_uniform_grid(
+    let mut grid:HashGrid<3, u16> = HashGrid::generate_uniform_grid(
         [3, 3, 3],  
         [PeriodicImage::BOTH; 3],
         [1.0, 1.0, 1.0]

@@ -2,9 +2,9 @@
 mod test {
     use crate::hashgrid::{HashGrid, PeriodicImage};
 
-    fn simple_grid() -> HashGrid<f32, 3, u16>{
+    fn simple_grid() -> HashGrid<3, u16>{
         // Create and populate a grid
-        let mut grid:HashGrid<f32, 3, u16> = HashGrid::generate_uniform_grid(
+        let mut grid:HashGrid<3, u16> = HashGrid::generate_uniform_grid(
             [3, 3, 3],  
             [PeriodicImage::BOTH; 3],
             [1.0, 1.0, 1.0]
@@ -25,7 +25,7 @@ mod test {
 
     #[test]
     fn test_ndim_to_1dim() {
-        let hashgrid:HashGrid<f32, 3, usize> = HashGrid::generate_uniform_grid([2, 3, 1], [PeriodicImage::BOTH; 3], [1.0, 1.0, 1.0]);
+        let hashgrid:HashGrid<3, usize> = HashGrid::generate_uniform_grid([2, 3, 1], [PeriodicImage::BOTH; 3], [1.0, 1.0, 1.0]);
         assert_eq!(hashgrid.ndim_to_1dim([0, 0, 0]), 0);
         assert_eq!(hashgrid.ndim_to_1dim([0, 1, 0]), 1);
         assert_eq!(hashgrid.ndim_to_1dim([0, 2, 0]), 2);
@@ -48,13 +48,13 @@ mod test {
 
     #[test]
     fn test_list_combination() {
-        let hashgrid:HashGrid<f32, 2, usize> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
+        let hashgrid:HashGrid<2, usize> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
         let result = hashgrid.list_combinations([1, 1], [PeriodicImage::BOTH, PeriodicImage::BOTH]);
         assert_eq!(result.len(), 8);
         assert_eq!(result[0], [1, 0]);
         assert_eq!(result[result.len()-1], [2, 2]);
 
-        let hashgrid:HashGrid<f32, 2, usize> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
+        let hashgrid:HashGrid<2, usize> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
         let result = hashgrid.list_combinations([2, 2], [PeriodicImage::BOTH, PeriodicImage::BOTH]);
         assert_eq!(result.len(), 8);
         assert_eq!(result[0], [2, 1]);
@@ -64,7 +64,7 @@ mod test {
 
     #[test]
     fn test_simple_cycle() {
-        let mut hashgrid:HashGrid<f32, 2, usize> = HashGrid::generate_uniform_grid([3, 3], [PeriodicImage::BOTH; 2], [1.0, 1.0]);
+        let mut hashgrid:HashGrid<2, usize> = HashGrid::generate_uniform_grid([3, 3], [PeriodicImage::BOTH; 2], [1.0, 1.0]);
         hashgrid.set_dwellers([1,1], vec![1, 2, 3]);
         hashgrid.set_dwellers([1,0], vec![4, 5, 6]);
         let cell = &hashgrid[[1, 1]];

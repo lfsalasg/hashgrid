@@ -5,6 +5,12 @@ use std::ops::{Index, IndexMut};
 
 pub use crate::hashgrid::hashcell::HashCell;
 
+#[cfg(feature = "double-precision")]
+type Float = f64;
+
+#[cfg(not(feature = "double-precision"))]
+type Float = f32;
+
 pub enum HashGridError {
     MismatchedSize(String)
 }
@@ -20,17 +26,17 @@ pub enum PeriodicImage {
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size where the elements of type `E` are registered.
-pub struct HashGrid<T: Into<f32> + From<f32> + Copy, const N:usize, E: Clone> 
+pub struct HashGrid<const N:usize, E: Clone> 
 {
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
-    pub dims: [T; N]
+    pub dims: [Float; N]
 }
 
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E> {
+impl<const N: usize, E: Clone> HashGrid<N, E> {
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
-    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[T; N]) -> Self{
+    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[Float; N]) -> Self{
         let e_size = grid.iter().fold(1, |acc, x| acc * x);
         let mut hashgrid = HashGrid {
             grid,
@@ -48,7 +54,7 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E
 
     /// Creates a grid in the N-dimensional space starting from a collection of `HashCell`. The 
     /// number of cells should be equal to the expected size of the grid.
-    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:[T; N]) -> Result<HashGrid<T, N, E>, HashGridError>{
+    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:[Float; N]) -> Result<HashGrid<N, E>, HashGridError>{
         let expected_length = grid.iter().fold(1, |acc, x| acc * x);
         if cells.len() !=  expected_length {
             return Err(HashGridError::MismatchedSize(
@@ -178,20 +184,20 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E
         self.grid
     }
 
-    pub fn cell_center(&self, cell:[usize; N]) -> [T; N] {
+    pub fn cell_center(&self, cell:[usize; N]) -> [Float; N] {
         let mut center = [0.0; N];
         for dim in 0..cell.len() {
-            center[dim] = (self.dims[dim].into() / self.grid[dim] as f32) * (cell[dim] as f32 + 0.5)
+            center[dim] = (self.dims[dim] / self.grid[dim] as Float) * (cell[dim] as Float + 0.5)
 
         }
 
         center.map(|x| x.into())
     }
 
-    pub fn get_bounding_cell(&self, coord:[T; N]) {
+    pub fn get_bounding_cell(&self, coord:[Float; N]) {
         let mut cell:[usize; N] = [0; N];
         for c in 0..coord.len() {
-            cell[c] = (coord[c].into() / self.dims[c].into()).floor() as usize
+            cell[c] = (coord[c] / self.dims[c]).floor() as usize
         }
     }
     
@@ -271,14 +277,14 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E
     }
 }
 
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> Index<usize> for HashGrid<T, N, E>{
+impl<const N: usize, E: Clone> Index<usize> for HashGrid<N, E>{
     type Output = HashCell<N, E>;
     fn index(&self, index: usize) -> &Self::Output {
         &self.cells[index]
     }
 }
 
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> Index<[usize; N]> for HashGrid<T, N, E>{
+impl< const N: usize, E: Clone> Index<[usize; N]> for HashGrid<N, E>{
     type Output = HashCell<N, E>;
     fn index(&self, index: [usize; N]) -> &Self::Output {
         let indx = self.ndim_to_1dim(index);
@@ -287,13 +293,13 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> Index<[usize; N]
 }
 
 
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IndexMut<usize> for HashGrid<T, N, E>{
+impl< const N: usize, E: Clone> IndexMut<usize> for HashGrid<N, E>{
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.cells[index]
     }
 }
 
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IndexMut<[usize; N]> for HashGrid<T, N, E>{
+impl< const N: usize, E: Clone> IndexMut<[usize; N]> for HashGrid<N, E>{
     fn index_mut(&mut self, index: [usize; N]) -> &mut Self::Output {
         let indx = self.ndim_to_1dim(index);
         &mut self.cells[indx]
