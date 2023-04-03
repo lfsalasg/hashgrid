@@ -97,4 +97,11 @@ mod test {
             k += 1;
         }
     }
+
+    #[test]
+    fn test_bounding_cell() {
+        let grid = simple_grid();
+        assert_eq!(grid.get_bounding_cell([1.5, 0.0, 2.1]).unwrap(), [1, 0, 2])
+        
+    }
 }

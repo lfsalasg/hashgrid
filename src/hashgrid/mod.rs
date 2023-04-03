@@ -11,8 +11,10 @@ type Float = f64;
 #[cfg(not(feature = "double-precision"))]
 type Float = f32;
 
+#[derive(Debug)]
 pub enum HashGridError {
-    MismatchedSize(String)
+    MismatchedSize(String),
+    OutOfBounds(String)
 }
 
 #[derive(Clone, Copy)]
@@ -25,7 +27,7 @@ pub enum PeriodicImage {
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
-/// size where the elements of type `E` are registered.
+/// size `dims`where the elements of type `E` are registered.
 pub struct HashGrid<const N:usize, E: Clone> 
 {
     grid: [usize; N],
@@ -84,6 +86,11 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
 
     pub fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>] {
         self.cells.as_mut_slice()
+    }
+
+    pub fn get_cells_index(&self) -> Vec<usize> {
+        let v:Vec<usize> = (0..self.cells.len()).collect();
+        v
     }
 
     /// Returns a referece of the elements registered under a cell with coordinates `coord` in the
@@ -194,11 +201,17 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         center.map(|x| x.into())
     }
 
-    pub fn get_bounding_cell(&self, coord:[Float; N]) {
+    pub fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError> {
         let mut cell:[usize; N] = [0; N];
         for c in 0..coord.len() {
-            cell[c] = (coord[c] / self.dims[c]).floor() as usize
+            let tmp = (coord[c] / self.dims[c]).floor() as usize;
+            if tmp > self.grid[c] {
+                return Err(HashGridError::OutOfBounds(format!("Coordinate in position {} is out of the grid {}", c, self.dims[c])));
+            }
+            cell[c] = tmp
         }
+
+        Ok(cell)
     }
     
     fn ndim_to_1dim(&self, coord:[usize; N]) -> usize {
