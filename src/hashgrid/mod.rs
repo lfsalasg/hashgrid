@@ -20,7 +20,8 @@ pub enum PeriodicImage {
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size where the elements of type `E` are registered.
-pub struct HashGrid<T: Into<f32> + From<f32> + Copy, const N:usize, E: Clone> {
+pub struct HashGrid<T: Into<f32> + From<f32> + Copy, const N:usize, E: Clone> 
+{
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
     pub dims: [T; N]
@@ -69,6 +70,14 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E
         }
 
         Ok(hashgrid)
+    }
+
+    pub fn get_cells(&self) -> &[HashCell<N, E>] {
+        self.cells.as_slice()
+    }
+
+    pub fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>] {
+        self.cells.as_mut_slice()
     }
 
     /// Returns a referece of the elements registered under a cell with coordinates `coord` in the
@@ -178,6 +187,13 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> HashGrid<T, N, E
 
         center.map(|x| x.into())
     }
+
+    pub fn get_bounding_cell(&self, coord:[T; N]) {
+        let mut cell:[usize; N] = [0; N];
+        for c in 0..coord.len() {
+            cell[c] = (coord[c].into() / self.dims[c].into()).floor() as usize
+        }
+    }
     
     fn ndim_to_1dim(&self, coord:[usize; N]) -> usize {
         let mut index = 0;
@@ -281,14 +297,5 @@ impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IndexMut<[usize;
     fn index_mut(&mut self, index: [usize; N]) -> &mut Self::Output {
         let indx = self.ndim_to_1dim(index);
         &mut self.cells[indx]
-    }
-}
-
-impl<T: Into<f32> + From<f32> + Copy, const N: usize, E: Clone> IntoIterator for HashGrid<T, N, E> {
-    type Item = HashCell<N, E>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.cells.into_iter()
     }
 }

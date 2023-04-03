@@ -2,6 +2,27 @@
 mod test {
     use crate::hashgrid::{HashGrid, PeriodicImage};
 
+    fn simple_grid() -> HashGrid<f32, 3, u16>{
+        // Create and populate a grid
+        let mut grid:HashGrid<f32, 3, u16> = HashGrid::generate_uniform_grid(
+            [3, 3, 3],  
+            [PeriodicImage::BOTH; 3],
+            [1.0, 1.0, 1.0]
+        );
+    
+        let mut l = 0;
+        for i in 0..3 {
+            for j in 0..3 {
+                for k in 0..3 {
+                    grid.set_dwellers([i, j, k], vec![l, l+1, l+2]);
+                    l += 3;
+                }
+            }
+        }
+    
+        grid
+    }
+
     #[test]
     fn test_ndim_to_1dim() {
         let hashgrid:HashGrid<f32, 3, usize> = HashGrid::generate_uniform_grid([2, 3, 1], [PeriodicImage::BOTH; 3], [1.0, 1.0, 1.0]);
@@ -60,10 +81,20 @@ mod test {
     }
 
     #[test]
-    fn test_into_iter() {
-        let hashgrid:HashGrid<f32, 2, usize> = HashGrid::generate_uniform_grid(
-            [3, 3], [PeriodicImage::BOTH; 2], [1.0, 1.0]);
-        
-        assert!(hashgrid.into_iter().all(|x| x.periodicity.len() == 2));
+    fn test_iterate_elements () {
+        let grid = simple_grid();
+        let mut k:u16 = 0;
+        for cell in grid.get_cells() {
+            for e in cell.get_dwellers() {
+            assert_eq!(*e, k);
+            k += 1;
+            }
+        }
+
+        k = 0;
+        for e in grid.get_all_dwellers() {
+            assert_eq!(*e, k);
+            k += 1;
+        }
     }
 }
