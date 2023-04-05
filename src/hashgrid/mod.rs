@@ -37,7 +37,8 @@ impl<const M: usize> Idx for [usize; M] {
                 panic!("Index is {} but size in the {}-dimension is {}", self[i], i + 1, grid[i])
             }
             index += self[i] * grid[i+1..]
-                .iter().fold(1, |acc, x| acc * x);
+                .iter()
+                .fold(1, |acc, x| acc * x);
         }
 
         index   
