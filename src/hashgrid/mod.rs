@@ -337,31 +337,16 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
     }
 }
 
-impl<const N: usize, E: Clone> Index<usize> for HashGrid<N, E>{
+impl<const N: usize, E: Clone, I: Idx> Index<I> for HashGrid<N, E>{
     type Output = HashCell<N, E>;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.cells[index]
+    fn index(&self, index: I) -> &Self::Output {
+
+        &self.cells[index.flatten(self.grid)]
     }
 }
 
-impl< const N: usize, E: Clone> Index<[usize; N]> for HashGrid<N, E>{
-    type Output = HashCell<N, E>;
-    fn index(&self, index: [usize; N]) -> &Self::Output {
-        let indx = self.ndim_to_1dim(index);
-        &self.cells[indx]
-    }
-}
-
-
-impl< const N: usize, E: Clone> IndexMut<usize> for HashGrid<N, E>{
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.cells[index]
-    }
-}
-
-impl< const N: usize, E: Clone> IndexMut<[usize; N]> for HashGrid<N, E>{
-    fn index_mut(&mut self, index: [usize; N]) -> &mut Self::Output {
-        let indx = self.ndim_to_1dim(index);
-        &mut self.cells[indx]
+impl< const N: usize, E: Clone, I: Idx> IndexMut<I> for HashGrid<N, E>{
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        &mut self.cells[index.flatten(self.grid)]
     }
 }
