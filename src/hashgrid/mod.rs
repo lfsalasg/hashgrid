@@ -36,6 +36,7 @@ pub struct HashGrid<const N:usize, E: Clone>
 }
 
 impl<const N: usize, E: Clone> HashGrid<N, E> {
+
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
     pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[Float; N]) -> Self{
@@ -55,7 +56,8 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
     }
 
     /// Creates a grid in the N-dimensional space starting from a collection of `HashCell`. The 
-    /// number of cells should be equal to the expected size of the grid.
+    /// number of cells should be equal to the expected size of the grid. It returns the `MismatchedSize` error
+    /// if the cells passed do not correspond to the dimensions of the Hashgrid
     pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:[Float; N]) -> Result<HashGrid<N, E>, HashGridError>{
         let expected_length = grid.iter().fold(1, |acc, x| acc * x);
         if cells.len() !=  expected_length {
@@ -80,10 +82,14 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         Ok(hashgrid)
     }
 
+    // CELL-LEVEL EXPLORATION
+
+    /// Returns a reference of a slice from the cells composing the GRID
     pub fn get_cells(&self) -> &[HashCell<N, E>] {
         self.cells.as_slice()
     }
 
+    /// Returns a mutable reference of a slice from the cells composing the GRID
     pub fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>] {
         self.cells.as_mut_slice()
     }
@@ -91,6 +97,14 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
     pub fn get_cells_index(&self) -> Vec<usize> {
         let v:Vec<usize> = (0..self.cells.len()).collect();
         v
+    }
+
+    pub fn get_cells_coords(&self) -> Vec<[usize; N]> {
+        let coords:Vec<[usize; N]> = (0..self.cells.len())
+                                        .into_iter()
+                                        .map(|x| self.ndim_from_1dim(x))
+                                        .collect();
+        coords
     }
 
     /// Returns a referece of the elements registered under a cell with coordinates `coord` in the
