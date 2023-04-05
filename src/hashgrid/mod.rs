@@ -1,9 +1,12 @@
-mod unittest;
 mod hashcell;
+mod idx;
+mod unittest;
+
 
 use std::ops::{Index, IndexMut};
 
 pub use crate::hashgrid::hashcell::HashCell;
+use crate::hashgrid::idx::Idx;
 
 #[cfg(feature = "double-precision")]
 type Float = f64;
@@ -23,6 +26,33 @@ pub enum PeriodicImage {
     BOTH,
     LEFT,
     RIGHT
+}
+
+impl<const M: usize> Idx for [usize; M] {
+    fn flatten<const N: usize> (&self, grid:[usize; N]) -> usize {
+        let mut index = 0;
+        
+        for i in 0..self.len() {
+            if self[i] >= grid[i] {
+                panic!("Index is {} but size in the {}-dimension is {}", self[i], i + 1, grid[i])
+            }
+            index += self[i] * grid[i+1..]
+                .iter().fold(1, |acc, x| acc * x);
+        }
+
+        index   
+    }
+
+    fn deflate<const N: usize>(&self, grid:[usize;N]) -> [usize; N] {
+        if self.len() != grid.len() {
+            panic!("Index length should be {} but found {}", grid.len(), self.len())
+        }
+        let mut out = [0; N];
+        for i in 0..self.len() {
+            out[i] = self[i]
+        }
+        out
+    }
 }
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
@@ -82,9 +112,7 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         Ok(hashgrid)
     }
 
-    // CELL-LEVEL EXPLORATION
-
-    /// Returns a reference of a slice from the cells composing the GRID
+     /// Returns a reference of a slice from the cells composing the GRID
     pub fn get_cells(&self) -> &[HashCell<N, E>] {
         self.cells.as_slice()
     }
@@ -107,47 +135,50 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         coords
     }
 
+    // CELL-LEVEL EXPLORATION
+
     /// Returns a referece of the elements registered under a cell with coordinates `coord` in the
     /// N-dimensional space
-    pub fn get_dwellers(&self, coord:[usize; N]) -> &[E] {
-        let indx = self.ndim_to_1dim(coord);
+    pub fn get_dwellers<I: Idx>(&self, coord:I) -> &[E] {
+        let indx = coord.flatten(self.grid);
+        //let indx = self.ndim_to_1dim(coord);
         self.cells[indx].get_dwellers()
     }
 
     /// Returns a mutable referece of the elements registered under a cell with coordinates `coord` in the
     /// N-dimensional space
-    pub fn get_mut_dwellers(&mut self, coord:[usize; N]) -> &mut [E] {
-        let indx = self.ndim_to_1dim(coord);
+    pub fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E] {
+        let indx = coord.flatten(self.grid);
         self.cells[indx].get_mut_dwellers()
     }
 
     /// Sets the dwellers of a certain cell. It overwrites any previous registered dweller
-    pub fn set_dwellers(&mut self, cell:[usize; N], dwellers:Vec<E>) {
-        let indx = self.ndim_to_1dim(cell);
+    pub fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>) {
+        let indx = coord.flatten(self.grid);
         self.cells[indx].set_dwellers(dwellers)
     }
 
-    pub fn add_dweller(&mut self, cell:[usize; N], dweller:E) {
-        let indx = self.ndim_to_1dim(cell);
+    pub fn add_dweller<I: Idx>(&mut self, coord:I, dweller:E) {
+        let indx = coord.flatten(self.grid);
         self.cells[indx].add_dweller(dweller)    
     }
 
-    pub fn drop_dweller(&mut self, indx:usize, cell:[usize; N]) {
-        let cell_index = self.ndim_to_1dim(cell);
+    pub fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) {
+        let cell_index = coord.flatten(self.grid);
         self.cells[cell_index].drop_dweller(indx)
     }
 
-    pub fn move_dweller(&mut self, indx:usize, from:[usize; N], to:[usize; N]) {
-        let from_indx = self.ndim_to_1dim(from);
-        let to_indx = self.ndim_to_1dim(to);
+    pub fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I) {
+        let from_indx = from.flatten(self.grid);
+        let to_indx = to.flatten(self.grid);
         let dw = self.cells[from_indx].dwellers[indx].clone();
         self.cells[from_indx].drop_dweller(indx);
         self.cells[to_indx].add_dweller(dw);
     }
 
-    pub fn get_neighbors(&self, coord:[usize; N]) -> Vec<&HashCell<N, E>> {
+    pub fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<&HashCell<N, E>> {
         let mut neighbors = Vec::new();
-        let indx = self.ndim_to_1dim(coord);
+        let indx = coord.flatten(self.grid);
         for cell_index in self.cells[indx].neighbors.iter() {
             neighbors.push(&self.cells[*cell_index])
         } 
@@ -155,9 +186,9 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         neighbors
     }
 
-    pub fn get_neighbors_coords(&self, coord:[usize; N]) -> Vec<[usize; N]> {
+    pub fn get_neighbors_coords<I: Idx>(&self, coord:I) -> Vec<[usize; N]> {
         let mut neighbors = Vec::new();
-        let indx = self.ndim_to_1dim(coord);
+        let indx = coord.flatten(self.grid);
         for cell_index in self.cells[indx].neighbors.iter() {
             neighbors.push(self.ndim_from_1dim(*cell_index))
         } 
@@ -165,9 +196,9 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         neighbors
     }
 
-    pub fn get_neighbors_dwellers(&self , coord:[usize; N]) -> Vec<&E> {
+    pub fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E> {
         let mut neighbors = Vec::new();
-        let indx = self.ndim_to_1dim(coord);
+        let indx = coord.flatten(self.grid);
         for cell_index in self.cells[indx].neighbors.iter() {
             neighbors.extend(self.cells[*cell_index].get_dwellers())
         } 
@@ -185,9 +216,9 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         pop
     }
 
-    pub fn update_neighbors(&mut self, cell:[usize; N], periodic_images:[PeriodicImage;N]) {
-        let cell_index = self.ndim_to_1dim(cell);
-        self.cells[cell_index].neighbors = self.list_combinations(cell, periodic_images)
+    pub fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]) {
+        let cell_index = coord.flatten(self.grid);
+        self.cells[cell_index].neighbors = self.list_combinations(coord, periodic_images)
                 .iter()
                 .map(|x| self.ndim_to_1dim(*x))
                 .collect();
@@ -205,7 +236,8 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         self.grid
     }
 
-    pub fn cell_center(&self, cell:[usize; N]) -> [Float; N] {
+    pub fn cell_center<I: Idx>(&self, coord:I) -> [Float; N] {
+        let cell = coord.deflate(self.grid);
         let mut center = [0.0; N];
         for dim in 0..cell.len() {
             center[dim] = (self.dims[dim] / self.grid[dim] as Float) * (cell[dim] as Float + 0.5)
@@ -255,7 +287,8 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
         indices
     }
 
-    fn list_combinations(&self, cell:[usize; N], periodic_images:[PeriodicImage;N]) -> Vec<[usize; N]> {
+    fn list_combinations<I: Idx>(&self, coord:I, periodic_images:[PeriodicImage;N]) -> Vec<[usize; N]> {
+        let cell = coord.deflate(self.grid);
         let mut all_combs = Vec::new();
         self.list_combinations_helper(0, cell, &mut all_combs, &periodic_images);
         all_combs.remove(0);
