@@ -5,6 +5,10 @@ mod unittest;
 
 use std::ops::{Index, IndexMut};
 
+use serde::{Serialize, Deserialize};
+use serde::ser::{Serializer, SerializeStruct};
+use serde::de::{Deserializer};
+
 pub use crate::hashgrid::hashcell::HashCell;
 use crate::hashgrid::idx::Idx;
 
@@ -20,7 +24,7 @@ pub enum HashGridError {
     OutOfBounds(String)
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum PeriodicImage {
     NONE,
     BOTH,
@@ -59,6 +63,7 @@ impl<const M: usize> Idx for [usize; M] {
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size `dims`where the elements of type `E` are registered.
+#[derive(Debug)]
 pub struct HashGrid<const N:usize, E: Clone> 
 {
     grid: [usize; N],
@@ -349,5 +354,39 @@ impl<const N: usize, E: Clone, I: Idx> Index<I> for HashGrid<N, E>{
 impl< const N: usize, E: Clone, I: Idx> IndexMut<I> for HashGrid<N, E>{
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
         &mut self.cells[index.flatten(self.grid)]
+    }
+}
+
+impl<const N: usize, E: Clone + Serialize> Serialize for HashGrid<N, E> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("HashGrid", 3)?;
+        state.serialize_field("grid", &self.grid.to_vec())?;
+        state.serialize_field("cells", &self.cells)?;
+        state.serialize_field("dims", &self.dims.to_vec())?;
+        state.end()
+    }
+}
+
+impl<'de, const N: usize, E: Clone + Deserialize<'de>> Deserialize<'de> for HashGrid<N, E> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct HashGridHelper<const N:usize, E: Clone> {
+            grid: Vec<usize>,
+            cells: Vec<HashCell<N, E>>,
+            dims: Vec<Float>
+        }
+
+        let helper = HashGridHelper::deserialize(deserializer)?;
+        Ok(Self {
+            grid: helper.grid.try_into().unwrap(),
+            cells: helper.cells,
+            dims: helper.dims.try_into().unwrap()
+        })
     }
 }

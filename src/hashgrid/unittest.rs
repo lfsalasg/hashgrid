@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod test {
-    use crate::hashgrid::{HashGrid, PeriodicImage};
+    use serde_json;
+
+    use crate::hashgrid::{HashGrid, HashCell, PeriodicImage};
 
     fn simple_grid() -> HashGrid<3, u16>{
         // Create and populate a grid
@@ -103,5 +105,40 @@ mod test {
         let grid = simple_grid();
         assert_eq!(grid.get_bounding_cell([1.5, 0.0, 2.1]).unwrap(), [1, 0, 2])
         
+    }
+
+    #[test]
+    fn test_serialize_deserialize_hashcell() {
+        // create a HashCell struct
+        let hashcell = HashCell::<3, u32> {
+            dwellers: vec![1, 2, 3],
+            neighbors: vec![0, 2],
+            periodicity: [
+                PeriodicImage::BOTH,
+                PeriodicImage::BOTH,
+                PeriodicImage::BOTH,
+            ],
+        };
+
+        // serialize the HashCell struct to JSON
+        let json = serde_json::to_string(&hashcell).unwrap();
+        println!("{}", json);
+        // deserialize it back to 
+        let new_cell: HashCell<3, u32> = serde_json::from_str(&json).unwrap();
+        assert_eq!(new_cell.dwellers, hashcell.dwellers)
+    }
+
+    #[test]
+    fn test_serialize_desearialize_hashgrid() {
+        let grid:HashGrid<2, usize> = HashGrid::generate_uniform_grid(
+            [3, 3], 
+            [PeriodicImage::BOTH, PeriodicImage::BOTH], 
+            [1.0, 1.0]
+        );
+
+        let json = serde_json::to_string(&grid).unwrap();
+        println!("{}", json);
+        let new_grid: HashGrid<2, usize> = serde_json::from_str(&json).unwrap();
+        assert_eq!(grid.cells.len(), new_grid.cells.len())
     }
 }
