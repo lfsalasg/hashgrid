@@ -13,10 +13,10 @@ pub use crate::hashgrid::hashcell::HashCell;
 use crate::hashgrid::idx::Idx;
 
 #[cfg(feature = "double-precision")]
-type Float = f64;
+pub type Float = f64;
 
 #[cfg(not(feature = "double-precision"))]
-type Float = f32;
+pub type Float = f32;
 
 #[derive(Debug)]
 pub enum HashGridError {
@@ -63,7 +63,7 @@ impl<const M: usize> Idx for [usize; M] {
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size `dims`where the elements of type `E` are registered.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct HashGrid<const N:usize, E: Clone> 
 {
     grid: [usize; N],
