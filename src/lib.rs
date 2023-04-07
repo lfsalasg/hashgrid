@@ -1,3 +1,5 @@
-pub mod hashgrid;
+#![doc = include_str!("../README.md")]
 
-pub use hashgrid::{HashGrid, HashCell, HashGridError,PeriodicImage};
+mod hashgrid;
+
+pub use hashgrid::{HashGrid, HashCell, HashGridError, PeriodicImage};
