@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul, Div};
 
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::ser::{Serialize, Serializer};
 use serde::de::{Deserialize, Deserializer};
 
 use crate::common::{Cardinality, Float};
