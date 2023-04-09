@@ -1,17 +1,19 @@
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde::de::{Deserialize, Deserializer};
+
 use crate::hashgrid::PeriodicImage;
+use crate::common::Cardinality;
 
 /// A representation of a cell contained inside a N-dimensional hash grid. It stores elements of type `E` and 
 /// can interact directly (with some limitations) or through the `HashGrid` struct.
 #[derive(Clone, Debug)]
-pub struct HashCell<const N:usize, E: Clone> {
+pub struct HashCell<const N:usize, E: Clone + Cardinality<N>> {
     pub dwellers: Vec<E>,
     pub neighbors: Vec<usize>,
     pub periodicity: [PeriodicImage; N] 
 }
 
-impl<const N:usize, E: Clone> HashCell<N, E> {
+impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
     pub fn new (periodicity:[PeriodicImage; N]) -> Self{
         Self {
             dwellers: Vec::new(),
@@ -47,7 +49,7 @@ impl<const N:usize, E: Clone> HashCell<N, E> {
 }
 
 
-impl<const N: usize, E: Clone + Serialize> Serialize for HashCell<N, E> {
+impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashCell<N, E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -61,7 +63,7 @@ impl<const N: usize, E: Clone + Serialize> Serialize for HashCell<N, E> {
 }
 
 
-impl<'de, const N: usize, E: Clone + Deserialize<'de>> Deserialize<'de> for HashCell<N, E> {
+impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserialize<'de> for HashCell<N, E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

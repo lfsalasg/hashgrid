@@ -1,3 +1,14 @@
+
+#[cfg(feature = "double-precision")]
+pub type Float = f64;
+
+#[cfg(not(feature = "double-precision"))]
+pub type Float = f32;
+
+pub trait Cardinality<const N: usize> {
+    fn coord(&self) -> [Float; N];
+}
+
 /// A trait for the elements capable of indexing the `Hashgrid`. The `flatten` method should take a high dimensional
 /// index of a cell (an slice for example) and return an index for the position of that `HashCell` given the size of 
 /// the grid. The `deflate` method tries to convert an index of a cell to a high dimensional index using the size of
@@ -28,5 +39,33 @@ impl Idx for usize {
         }
 
         indices 
+    }
+}
+
+impl<const M: usize> Idx for [usize; M] {
+    fn flatten<const N: usize> (&self, grid:[usize; N]) -> usize {
+        let mut index = 0;
+        
+        for i in 0..self.len() {
+            if self[i] >= grid[i] {
+                panic!("Index is {} but size in the {}-dimension is {}", self[i], i + 1, grid[i])
+            }
+            index += self[i] * grid[i+1..]
+                .iter()
+                .fold(1, |acc, x| acc * x);
+        }
+
+        index   
+    }
+
+    fn deflate<const N: usize>(&self, grid:[usize;N]) -> [usize; N] {
+        if self.len() != grid.len() {
+            panic!("Index length should be {} but found {}", grid.len(), self.len())
+        }
+        let mut out = [0; N];
+        for i in 0..self.len() {
+            out[i] = self[i]
+        }
+        out
     }
 }

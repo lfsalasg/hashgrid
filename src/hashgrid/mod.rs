@@ -1,5 +1,4 @@
 mod hashcell;
-mod idx;
 mod unittest;
 
 
@@ -10,13 +9,9 @@ use serde::ser::{Serializer, SerializeStruct};
 use serde::de::{Deserializer};
 
 pub use crate::hashgrid::hashcell::HashCell;
-use crate::hashgrid::idx::Idx;
 
-#[cfg(feature = "double-precision")]
-type Float = f64;
+use crate::common::{Cardinality, Float, Idx};
 
-#[cfg(not(feature = "double-precision"))]
-type Float = f32;
 
 #[derive(Debug)]
 pub enum HashGridError {
@@ -32,46 +27,18 @@ pub enum PeriodicImage {
     RIGHT
 }
 
-impl<const M: usize> Idx for [usize; M] {
-    fn flatten<const N: usize> (&self, grid:[usize; N]) -> usize {
-        let mut index = 0;
-        
-        for i in 0..self.len() {
-            if self[i] >= grid[i] {
-                panic!("Index is {} but size in the {}-dimension is {}", self[i], i + 1, grid[i])
-            }
-            index += self[i] * grid[i+1..]
-                .iter()
-                .fold(1, |acc, x| acc * x);
-        }
-
-        index   
-    }
-
-    fn deflate<const N: usize>(&self, grid:[usize;N]) -> [usize; N] {
-        if self.len() != grid.len() {
-            panic!("Index length should be {} but found {}", grid.len(), self.len())
-        }
-        let mut out = [0; N];
-        for i in 0..self.len() {
-            out[i] = self[i]
-        }
-        out
-    }
-}
-
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size `dims`where the elements of type `E` are registered.
 #[derive(Debug)]
-pub struct HashGrid<const N:usize, E: Clone> 
+pub struct HashGrid<const N:usize, E: Clone + Cardinality<N>> 
 {
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
     pub dims: [Float; N]
 }
 
-impl<const N: usize, E: Clone> HashGrid<N, E> {
+impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
 
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
@@ -343,7 +310,7 @@ impl<const N: usize, E: Clone> HashGrid<N, E> {
     }
 }
 
-impl<const N: usize, E: Clone, I: Idx> Index<I> for HashGrid<N, E>{
+impl<const N: usize, E: Clone + Cardinality<N>, I: Idx> Index<I> for HashGrid<N, E>{
     type Output = HashCell<N, E>;
     fn index(&self, index: I) -> &Self::Output {
 
@@ -351,13 +318,13 @@ impl<const N: usize, E: Clone, I: Idx> Index<I> for HashGrid<N, E>{
     }
 }
 
-impl< const N: usize, E: Clone, I: Idx> IndexMut<I> for HashGrid<N, E>{
+impl< const N: usize, E: Clone + Cardinality<N>, I: Idx> IndexMut<I> for HashGrid<N, E>{
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
         &mut self.cells[index.flatten(self.grid)]
     }
 }
 
-impl<const N: usize, E: Clone + Serialize> Serialize for HashGrid<N, E> {
+impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashGrid<N, E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -370,13 +337,13 @@ impl<const N: usize, E: Clone + Serialize> Serialize for HashGrid<N, E> {
     }
 }
 
-impl<'de, const N: usize, E: Clone + Deserialize<'de>> Deserialize<'de> for HashGrid<N, E> {
+impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserialize<'de> for HashGrid<N, E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         #[derive(serde::Deserialize)]
-        struct HashGridHelper<const N:usize, E: Clone> {
+        struct HashGridHelper<const N:usize, E: Clone + Cardinality<N>> {
             grid: Vec<usize>,
             cells: Vec<HashCell<N, E>>,
             dims: Vec<Float>
