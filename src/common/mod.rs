@@ -1,3 +1,6 @@
+mod point;
+
+pub use point::{Point, Point2D, Point3D};
 
 #[cfg(feature = "double-precision")]
 pub type Float = f64;
@@ -5,8 +8,11 @@ pub type Float = f64;
 #[cfg(not(feature = "double-precision"))]
 pub type Float = f32;
 
+/// The Cardinality trait obligates all elements inside a hashgrid to  have
+/// a cardinal location in the N-space, where N is the dimension of the grid.
+/// It also has some useful space and vector related functions (not the fastest though)
 pub trait Cardinality<const N: usize> {
-    fn coord(&self) -> [Float; N];
+    fn coord(&self) -> Point<N>;
 }
 
 /// A trait for the elements capable of indexing the `Hashgrid`. The `flatten` method should take a high dimensional

@@ -1,11 +1,11 @@
-use hashgrid::{HashGrid, PeriodicImage, utils::Point3D};
+use hashgrid::{HashGrid, PeriodicImage, common::Point3D};
 
 fn simple_grid() -> HashGrid<3, Point3D>{
     // Create and populate a grid
     let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
         [3, 3, 3],  
         [PeriodicImage::BOTH; 3],
-        [1.0, 1.0, 1.0]
+        Point3D::new([1.0, 1.0, 1.0])
     );
 
     let mut l = 0;

@@ -10,13 +10,14 @@ use serde::de::{Deserializer};
 
 pub use crate::hashgrid::hashcell::HashCell;
 
-use crate::common::{Cardinality, Float, Idx};
+use crate::common::{Cardinality, Float, Idx, Point};
 
 
 #[derive(Debug)]
 pub enum HashGridError {
-    MismatchedSize(String),
-    OutOfBounds(String)
+    MismatchedGridSize(String),
+    OutOfBounds(String),
+    WrongDimensionality(String)
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -35,14 +36,14 @@ pub struct HashGrid<const N:usize, E: Clone + Cardinality<N>>
 {
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
-    pub dims: [Float; N]
+    pub dims: Point<N>
 }
 
 impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
 
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
-    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[Float; N]) -> Self{
+    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:Point<N>) -> Self{
         let e_size = grid.iter().fold(1, |acc, x| acc * x);
         let mut hashgrid = HashGrid {
             grid,
@@ -61,10 +62,10 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
     /// Creates a grid in the N-dimensional space starting from a collection of `HashCell`. The 
     /// number of cells should be equal to the expected size of the grid. It returns the `MismatchedSize` error
     /// if the cells passed do not correspond to the dimensions of the Hashgrid
-    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:[Float; N]) -> Result<HashGrid<N, E>, HashGridError>{
+    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:Point<N>) -> Result<HashGrid<N, E>, HashGridError>{
         let expected_length = grid.iter().fold(1, |acc, x| acc * x);
         if cells.len() !=  expected_length {
-            return Err(HashGridError::MismatchedSize(
+            return Err(HashGridError::MismatchedGridSize(
                 format!("Expected number of cells was {} but  {} were found", expected_length, cells.len())
             ));
         }
@@ -372,7 +373,7 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         Ok(Self {
             grid: helper.grid.try_into().unwrap(),
             cells: helper.cells,
-            dims: helper.dims.try_into().unwrap()
+            dims: Point::from_vec(helper.dims).unwrap()
         })
     }
 }
