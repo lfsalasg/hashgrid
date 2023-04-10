@@ -1,14 +1,15 @@
 use std::ops::Deref;
 
-use crate::hashgrid::{HashGrid, HashGridError,PeriodicImage, Float};
+use crate::hashgrid::{HashGrid, PeriodicImage};
+use crate::common::{Cardinality, Point};
 
-struct DynamiHashgrid<const N:usize, E: Clone> {
+struct DynamiHashgrid<const N:usize, E: Clone + Cardinality<N>> {
     images:(HashGrid<N, E>, HashGrid<N, E>),
     pointer: usize
 }
 
-impl<const N:usize, E:Clone> DynamiHashgrid<N, E> {
-    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:[Float; N]) -> Self {
+impl<const N:usize, E:Clone + Cardinality<N>> DynamiHashgrid<N, E> {
+    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:Point<N>) -> Self {
         let grid = HashGrid::generate_uniform_grid(grid, periodicity, dims);
         let ref_grid = &grid;
         
@@ -27,7 +28,7 @@ impl<const N:usize, E:Clone> DynamiHashgrid<N, E> {
     }
 }
 
-impl<const N: usize, E: Clone> Deref for DynamiHashgrid<N, E> {
+impl<const N: usize, E: Clone + Cardinality<N>> Deref for DynamiHashgrid<N, E> {
     type Target = HashGrid<N,E>;
 
     fn deref(&self) -> &Self::Target {
