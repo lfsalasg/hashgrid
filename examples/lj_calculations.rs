@@ -88,7 +88,7 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
     let mut total_energy = 0.0;
     for indx in grid.get_cells_index() {
         let dwellers = grid[indx].get_dwellers();
-        let neighbors = grid.get_neighbors_dwellers(indx);
+        let neighbors = grid.get_neighbors(indx);
         for i in 0..dwellers.len() {
             for j in (0..i).chain(i+1..dwellers.len()) {
                 let d = dwellers[i].squared_distance(&dwellers[j]);
@@ -98,7 +98,8 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
                 total_energy += pairwise_energy(5.0, 3.34, d);
             }
 
-            for j in 0..neighbors.len() {
+            for (cell, pi) in neighbors {
+                for j in cell. 
                 let d = dwellers[i].squared_distance(&neighbors[j]);
                 if d > squared_cutoff {
                     continue;

@@ -9,7 +9,7 @@ use crate::common::Cardinality;
 #[derive(Clone, Debug)]
 pub struct HashCell<const N:usize, E: Clone + Cardinality<N>> {
     pub dwellers: Vec<E>,
-    pub neighbors: Vec<(usize, [usize; N])>,
+    pub neighbors: Vec<(usize, [isize; N])>,
     pub periodicity: [PeriodicImage; N] 
 }
 
@@ -54,7 +54,7 @@ impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashCe
     where
         S: Serializer,
     {
-        let neighbors:Vec<(usize, Vec<usize>)> = self.neighbors.iter()
+        let neighbors:Vec<(usize, Vec<isize>)> = self.neighbors.iter()
                         .map(|x| (x.0, x.1.to_vec()))
                         .collect();
         let mut state = serializer.serialize_struct("HashCell", 3)?;
@@ -74,13 +74,13 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         #[derive(serde::Deserialize)]
         struct HashCellHelper<E: Clone> {
             dwellers: Vec<E>,
-            neighbors: Vec<(usize, Vec<usize>)>,
+            neighbors: Vec<(usize, Vec<isize>)>,
             periodicity: Vec<PeriodicImage>
         }
 
         let helper = HashCellHelper::deserialize(deserializer)?;
-        let neighbors:Vec<(usize, [usize; N])> = helper.neighbors.iter()
-                        .map(|x| (x.0, x.1.try_into().unwrap()))
+        let neighbors:Vec<(usize, [isize; N])> = helper.neighbors.iter()
+                        .map(|x| (x.0, x.1.clone().try_into().unwrap()))
                         .collect();
         Ok(Self {
             dwellers: helper.dwellers,

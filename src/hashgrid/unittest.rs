@@ -64,14 +64,16 @@ mod test {
         let hashgrid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
         let result = hashgrid.list_combinations([1, 1], [PeriodicImage::BOTH, PeriodicImage::BOTH]);
         assert_eq!(result.len(), 8);
-        assert_eq!(result[0], [1, 0]);
-        assert_eq!(result[result.len()-1], [2, 2]);
+        assert_eq!(result[0].0, [1, 0]);
+        assert_eq!(result[0].1, [0, 0]);
+        assert_eq!(result[result.len()-1].0, [2, 2]);
 
         let hashgrid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], [3.0, 3.0]);
         let result = hashgrid.list_combinations([2, 2], [PeriodicImage::BOTH, PeriodicImage::BOTH]);
         assert_eq!(result.len(), 8);
-        assert_eq!(result[0], [2, 1]);
-        assert_eq!(result[result.len()-1], [0, 0])
+        assert_eq!(result[0].0, [2, 1]);
+        assert_eq!(result[result.len()-1].0, [0, 0]);
+        assert_eq!(result[result.len()-1].1, [1, 1], "{:?}", result[result.len()-1].1)
 
     }
 
@@ -92,7 +94,7 @@ mod test {
 
         let cell = &hashgrid[[1, 1]];
         for neigbhor in &cell.neighbors {
-            println!("{:?}", hashgrid.ndim_from_1dim(*neigbhor))
+            println!("{:?}", hashgrid.ndim_from_1dim(neigbhor.0))
         }
         
         println!("{:?}", hashgrid.get_neighbors_dwellers([1,1]));
@@ -137,7 +139,7 @@ mod test {
                 Point3D::new([2.0, 2.0, 2.0]),
                 Point3D::new([3.0, 3.0, 3.0]),
             ],
-            neighbors: vec![0, 2],
+            neighbors: vec![(0, [0,0,0]), (2, [0,0,0])],
             periodicity: [
                 PeriodicImage::BOTH,
                 PeriodicImage::BOTH,
