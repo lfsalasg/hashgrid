@@ -3,7 +3,7 @@ mod test {
     use serde_json;
 
     use crate::common::{Point2D,Point3D};
-    use crate::hashgrid::{HashGrid, HashCell, PeriodicImage};
+    use crate::hashgrid::{HashGrid, HashCell, PeriodicImage, ReadGrid, WriteGrid};
 
     fn simple_grid() -> HashGrid<3, Point3D>{
         // Create and populate a grid

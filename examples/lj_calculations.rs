@@ -1,5 +1,5 @@
 use std::time::Instant;
-use hashgrid::{HashGrid, PeriodicImage};
+use hashgrid::{HashGrid, PeriodicImage, ReadGrid};
 use hashgrid::common::{Cardinality, Point3D};
 
 #[derive(Clone)]

@@ -6,4 +6,5 @@ mod hashgrid;
 pub mod utils;
 
 
-pub use hashgrid::{HashGrid, HashCell, HashGridError, PeriodicImage};
+pub use hashgrid::{HashGrid, HashCell, HashGridError, PeriodicImage, ReadGrid, WriteGrid};
+pub use dynamic::IsoHashgrid;

@@ -28,6 +28,51 @@ pub enum PeriodicImage {
     RIGHT
 }
 
+pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
+    fn get_cells(&self) -> &[HashCell<N, E>];
+
+    fn get_cells_index(&self) -> Vec<usize>;
+
+    fn get_cells_coords(&self) -> Vec<[usize; N]>;
+
+    fn get_dwellers<I: Idx>(&self, coord:I) -> &[E];
+
+    fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<(&HashCell<N, E>, [isize; N])>;
+
+    fn get_neighbors_coords<I: Idx>(&self, coord:I) -> Vec<([usize; N], [isize; N])>;
+
+    fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E>;
+
+    fn get_all_dwellers(&self) -> Vec<&E>;
+
+    fn population(&self) -> usize;
+
+    fn size(&self) -> usize;
+
+    fn shape(&self) -> [usize; N];
+
+    fn cell_center<I: Idx>(&self, coord:I) -> [Float; N];
+
+    fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError>;
+
+}
+
+pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
+    fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>];
+
+    fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E];
+
+    fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>);   
+
+    fn add_dweller<I: Idx>(&mut self, coord:I, dweller:E);
+
+    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I);
+
+    fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I);
+
+    fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]);
+}
+
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
 /// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
 /// size `dims`where the elements of type `E` are registered.
@@ -84,154 +129,6 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
         }
 
         Ok(hashgrid)
-    }
-
-     /// Returns a reference of a slice from the cells composing the GRID
-    pub fn get_cells(&self) -> &[HashCell<N, E>] {
-        self.cells.as_slice()
-    }
-
-    /// Returns a mutable reference of a slice from the cells composing the GRID
-    pub fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>] {
-        self.cells.as_mut_slice()
-    }
-
-    pub fn get_cells_index(&self) -> Vec<usize> {
-        let v:Vec<usize> = (0..self.cells.len()).collect();
-        v
-    }
-
-    pub fn get_cells_coords(&self) -> Vec<[usize; N]> {
-        let coords:Vec<[usize; N]> = (0..self.cells.len())
-                                        .into_iter()
-                                        .map(|x| self.ndim_from_1dim(x))
-                                        .collect();
-        coords
-    }
-
-    // CELL-LEVEL EXPLORATION
-
-    /// Returns a referece of the elements registered under a cell with coordinates `coord` in the
-    /// N-dimensional space
-    pub fn get_dwellers<I: Idx>(&self, coord:I) -> &[E] {
-        let indx = coord.flatten(self.grid);
-        //let indx = self.ndim_to_1dim(coord);
-        self.cells[indx].get_dwellers()
-    }
-
-    /// Returns a mutable referece of the elements registered under a cell with coordinates `coord` in the
-    /// N-dimensional space
-    pub fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E] {
-        let indx = coord.flatten(self.grid);
-        self.cells[indx].get_mut_dwellers()
-    }
-
-    /// Sets the dwellers of a certain cell. It overwrites any previous registered dweller
-    pub fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>) {
-        let indx = coord.flatten(self.grid);
-        self.cells[indx].set_dwellers(dwellers)
-    }
-
-    pub fn add_dweller<I: Idx>(&mut self, coord:I, dweller:E) {
-        let indx = coord.flatten(self.grid);
-        self.cells[indx].add_dweller(dweller)    
-    }
-
-    pub fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) {
-        let cell_index = coord.flatten(self.grid);
-        self.cells[cell_index].drop_dweller(indx)
-    }
-
-    pub fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I) {
-        let from_indx = from.flatten(self.grid);
-        let to_indx = to.flatten(self.grid);
-        let dw = self.cells[from_indx].dwellers[indx].clone();
-        self.cells[from_indx].drop_dweller(indx);
-        self.cells[to_indx].add_dweller(dw);
-    }
-
-    pub fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<(&HashCell<N, E>, [isize; N])> {
-        let mut neighbors = Vec::new();
-        let indx = coord.flatten(self.grid);
-        for (cell_index, grid) in self.cells[indx].neighbors.iter() {
-            neighbors.push((&self.cells[*cell_index], *grid))
-        } 
-
-        neighbors
-    }
-
-    pub fn get_neighbors_coords<I: Idx>(&self, coord:I) -> Vec<([usize; N], [isize; N])> {
-        let mut neighbors = Vec::new();
-        let indx = coord.flatten(self.grid);
-        for (cell_index, grid) in self.cells[indx].neighbors.iter() {
-            neighbors.push((self.ndim_from_1dim(*cell_index), *grid))
-        } 
-
-        neighbors
-    }
-
-    pub fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E> {
-        let mut neighbors = Vec::new();
-        let indx = coord.flatten(self.grid);
-        for (cell_index, _) in self.cells[indx].neighbors.iter() {
-            neighbors.extend(self.cells[*cell_index].get_dwellers())
-        } 
-
-        neighbors
-    }   
-
-    pub fn get_all_dwellers(&self) -> Vec<&E> {
-        let mut pop:Vec<&E> = Vec::new();
-
-        for cell in self.cells.iter() {
-            pop.extend(cell.get_dwellers())
-        }
-
-        pop
-    }
-
-    pub fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]) {
-        let cell_index = coord.flatten(self.grid);
-        self.cells[cell_index].neighbors = self.list_combinations(coord, periodic_images)
-                .iter()
-                .map(|x| (self.ndim_to_1dim(x.0), x.1))
-                .collect();
-    }
-
-    pub fn population(&self) -> usize {
-        self.cells.iter().fold(0, |acc, x| acc + x.population())
-    }
-
-    pub fn size(&self) -> usize {
-        self.cells.len()
-    }
-
-    pub fn shape(&self) -> [usize; N] {
-        self.grid
-    }
-
-    pub fn cell_center<I: Idx>(&self, coord:I) -> [Float; N] {
-        let cell = coord.deflate(self.grid);
-        let mut center = [0.0; N];
-        for dim in 0..cell.len() {
-            center[dim] = (self.dims[dim] / self.grid[dim] as Float) * (cell[dim] as Float + 0.5)
-
-        }
-
-        center.map(|x| x.into())
-    }
-
-    pub fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError> {
-        let mut cell:[usize; N] = [0; N];
-        for c in 0..coord.len() {
-            let tmp = (coord[c] / self.dims[c]).floor() as usize;
-            if tmp > self.grid[c] {
-                return Err(HashGridError::OutOfBounds(format!("Coordinate in position {} is out of the grid {}", c, self.dims[c])));
-            }
-            cell[c] = tmp
-        }
-
-        Ok(cell)
     }
     
     fn ndim_to_1dim(&self, coord:[usize; N]) -> usize {
@@ -328,6 +225,157 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
             }
         }
     }
+}
+
+impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, E> {
+    /// Returns a reference of a slice from the cells composing the GRID
+    fn get_cells(&self) -> &[HashCell<N, E>] {
+        self.cells.as_slice()
+    }
+
+    fn get_cells_index(&self) -> Vec<usize> {
+        let v:Vec<usize> = (0..self.cells.len()).collect();
+        v
+    }
+
+    fn get_cells_coords(&self) -> Vec<[usize; N]> {
+        let coords:Vec<[usize; N]> = (0..self.cells.len())
+                                        .into_iter()
+                                        .map(|x| self.ndim_from_1dim(x))
+                                        .collect();
+        coords
+    }
+    
+    // Returns a referece of the elements registered under a cell with coordinates `coord` in the
+    /// N-dimensional space    
+    fn get_dwellers<I: Idx>(&self, coord:I) -> &[E] {
+        let indx = coord.flatten(self.grid);
+        //let indx = self.ndim_to_1dim(coord);
+        self.cells[indx].get_dwellers()
+    }
+
+    fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<(&HashCell<N, E>, [isize; N])> {
+        let mut neighbors = Vec::new();
+        let indx = coord.flatten(self.grid);
+        for (cell_index, grid) in self.cells[indx].neighbors.iter() {
+            neighbors.push((&self.cells[*cell_index], *grid))
+        } 
+
+        neighbors
+    }
+
+    fn get_neighbors_coords<I: Idx>(&self, coord:I) -> Vec<([usize; N], [isize; N])> {
+        let mut neighbors = Vec::new();
+        let indx = coord.flatten(self.grid);
+        for (cell_index, grid) in self.cells[indx].neighbors.iter() {
+            neighbors.push((self.ndim_from_1dim(*cell_index), *grid))
+        } 
+
+        neighbors
+    }
+
+    fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E> {
+        let mut neighbors = Vec::new();
+        let indx = coord.flatten(self.grid);
+        for (cell_index, _) in self.cells[indx].neighbors.iter() {
+            neighbors.extend(self.cells[*cell_index].get_dwellers())
+        } 
+
+        neighbors
+    }   
+
+    fn get_all_dwellers(&self) -> Vec<&E> {
+        let mut pop:Vec<&E> = Vec::new();
+
+        for cell in self.cells.iter() {
+            pop.extend(cell.get_dwellers())
+        }
+
+        pop
+    }
+
+    fn population(&self) -> usize {
+        self.cells.iter().fold(0, |acc, x| acc + x.population())
+    }
+
+    fn size(&self) -> usize {
+        self.cells.len()
+    }
+
+    fn shape(&self) -> [usize; N] {
+        self.grid
+    }
+
+    fn cell_center<I: Idx>(&self, coord:I) -> [Float; N] {
+        let cell = coord.deflate(self.grid);
+        let mut center = [0.0; N];
+        for dim in 0..cell.len() {
+            center[dim] = (self.dims[dim] / self.grid[dim] as Float) * (cell[dim] as Float + 0.5)
+
+        }
+
+        center.map(|x| x.into())
+    }
+
+    fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError> {
+        let mut cell:[usize; N] = [0; N];
+        for c in 0..coord.len() {
+            let tmp = (coord[c] / self.dims[c]).floor() as usize;
+            if tmp > self.grid[c] {
+                return Err(HashGridError::OutOfBounds(format!("Coordinate in position {} is out of the grid {}", c, self.dims[c])));
+            }
+            cell[c] = tmp
+        }
+
+        Ok(cell)
+    }
+}
+
+impl<const N: usize, E: Clone + Cardinality<N>> WriteGrid<N, E> for HashGrid<N, E> {
+    /// Returns a mutable reference of a slice from the cells composing the GRID
+    fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>] {
+        self.cells.as_mut_slice()
+    }
+
+    /// Returns a mutable referece of the elements registered under a cell with coordinates `coord` in the
+    /// N-dimensional space
+    fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E] {
+        let indx = coord.flatten(self.grid);
+        self.cells[indx].get_mut_dwellers()
+    }
+
+    /// Sets the dwellers of a certain cell. It overwrites any previous registered dweller
+    fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>) {
+        let indx = coord.flatten(self.grid);
+        self.cells[indx].set_dwellers(dwellers)
+    }
+
+    fn add_dweller<I: Idx>(&mut self, coord:I, dweller:E) {
+        let indx = coord.flatten(self.grid);
+        self.cells[indx].add_dweller(dweller)    
+    }
+
+    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) {
+        let cell_index = coord.flatten(self.grid);
+        self.cells[cell_index].drop_dweller(indx)
+    }
+
+    fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I) {
+        let from_indx = from.flatten(self.grid);
+        let to_indx = to.flatten(self.grid);
+        let dw = self.cells[from_indx].dwellers[indx].clone();
+        self.cells[from_indx].drop_dweller(indx);
+        self.cells[to_indx].add_dweller(dw);
+    }
+
+    fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]) {
+        let cell_index = coord.flatten(self.grid);
+        self.cells[cell_index].neighbors = self.list_combinations(coord, periodic_images)
+                .iter()
+                .map(|x| (self.ndim_to_1dim(x.0), x.1))
+                .collect();
+    }
+
 }
 
 impl<const N: usize, E: Clone + Cardinality<N>, I: Idx> Index<I> for HashGrid<N, E>{

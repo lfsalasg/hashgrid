@@ -1,4 +1,4 @@
-use hashgrid::{HashGrid, PeriodicImage, common::Point3D};
+use hashgrid::{HashGrid, PeriodicImage, common::Point3D, ReadGrid, WriteGrid};
 
 fn simple_grid() -> HashGrid<3, Point3D>{
     // Create and populate a grid
