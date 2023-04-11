@@ -1,7 +1,7 @@
 mod unittest;
 
 use crate::hashgrid::{HashGrid, ReadGrid, WriteGrid};
-use crate::common::{Cardinality, Point};
+use crate::common::Cardinality;
 
 pub struct IsoHashgrid<const N:usize, E: Clone + Cardinality<N>> {
     images:[HashGrid<N, E>; 2],

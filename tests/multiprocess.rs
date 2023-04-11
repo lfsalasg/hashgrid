@@ -37,4 +37,8 @@ fn cocurrent_read() {
         });
         handlers.push(handler)
     }
+
+    for handle in handlers {
+        handle.join().unwrap()
+    }
 }
