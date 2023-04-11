@@ -200,7 +200,7 @@ fn with_cells_in_parallel(p_per_side:u32, sep:f32, cutoff:f32, n_threads:usize) 
 
 fn main() {
     println!("Running brute force test");
-    //brute_force(8, 4.5, 12.0);
+    brute_force(8, 4.5, 12.0);
     println!("Running hashgrid test (no parallelization)");
     with_cells(8, 4.5, 12.0);
     println!("Running hashgrid test (with parallelization)");
