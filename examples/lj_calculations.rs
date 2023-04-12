@@ -1,10 +1,9 @@
 use std::time::Instant;
 use std::sync::{Arc, Mutex};
 use std::thread;
+
 use hashgrid::{HashGrid, PeriodicImage, ReadGrid};
 use hashgrid::common::{Cardinality, Point3D};
-
-
 
 
 #[derive(Clone)]
