@@ -1,12 +1,21 @@
+mod cocurrent;
 mod unittest;
 
 use crate::hashgrid::{HashGrid, ReadGrid, WriteGrid};
 use crate::common::Cardinality;
+use crate::dynamic::cocurrent::MultiThreaded;
+
+#[derive(PartialEq)]
+enum IsoHashgridState {
+    Committed,
+    Initialized
+}
 
 pub struct IsoHashgrid<const N:usize, E: Clone + Cardinality<N>> {
     images:[HashGrid<N, E>; 2],
     p: usize,
-    f: usize
+    f: usize,
+    state: IsoHashgridState
 }
 
 impl<const N:usize, E:Clone + Cardinality<N>> IsoHashgrid<N, E> {
@@ -14,7 +23,8 @@ impl<const N:usize, E:Clone + Cardinality<N>> IsoHashgrid<N, E> {
         Self {
             images: [grid.clone(), grid],
             p: 0,
-            f: 1
+            f: 1,
+            state: IsoHashgridState::Initialized
         }
     }
 
@@ -26,6 +36,8 @@ impl<const N:usize, E:Clone + Cardinality<N>> IsoHashgrid<N, E> {
             self.p = 0;
             self.f = 1
         }
+
+        self.state = IsoHashgridState::Committed;
     }
 
     pub fn rollback(&mut self) {

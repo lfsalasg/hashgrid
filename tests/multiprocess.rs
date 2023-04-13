@@ -1,9 +1,8 @@
-#[cfg(test)]
 use std::sync::Arc;
 use std::thread;
 
-use hashgrid::{HashGrid, PeriodicImage, ReadGrid, WriteGrid};
-use hashgrid::common::{Point2D};
+use hashgrid::{HashGrid, PeriodicImage, WriteGrid};
+use hashgrid::common::Point2D;
 
 #[test]
 fn cocurrent_read() {
