@@ -3,11 +3,11 @@ use std::sync::Arc;
 use crossbeam::scope;
 
 use crate::common::Cardinality;
-use crate::dynamic::{IsoHashGrid, IsoHashGridState};
+use crate::dynamic::IsoHashGrid;
 use crate::hashgrid::{HashGrid, HashCell, ReadGrid, WriteGrid};
 
 /// The MultiThreaded trait provides a set of methods to read and mutate
-/// ÌsoHashGrid` instances cocurrently, providing a [serializable isolation
+/// `IsoHashGrid` instances cocurrently, providing a [serializable isolation
 /// level](https://en.wikipedia.org/wiki/Isolation_(database_systems))
 pub trait MultiThreaded<const N:usize, E: Clone + Cardinality<N>> {
     fn split_task<T, F>(&mut self, n_threads:usize, f: F)

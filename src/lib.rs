@@ -8,4 +8,4 @@ mod hashgrid;
 
 
 pub use hashgrid::{HashGrid, HashCell, HashGridError, PeriodicImage, ReadGrid, WriteGrid};
-pub use dynamic::IsoHashGrid;
+pub use dynamic::{IsoHashGrid, MultiThreaded};

@@ -41,27 +41,3 @@ fn cocurrent_read() {
         handle.join().unwrap()
     }
 }
-
-
-#[test]
-fn share_and_edit(){
-    struct TestStruct {};
-    let a = vec!["a".to_string(),
-    "b".to_string(),
-    "c".to_string()];
-    let b = a.clone();
-
-    for chunk in a.chunks(2) {
-        let handler = thread::spawn(move || {
-            let mut text = String::from("");
-            for e in chunk {
-                text += e
-            }
-
-            text
-        });
-        println!("{:?}", chunk);
-        println!("{}", c())
-    }
-    println!("{:?}", a);
-}

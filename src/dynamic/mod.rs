@@ -3,7 +3,7 @@ mod unittest;
 
 use crate::hashgrid::{HashGrid, ReadGrid, WriteGrid};
 use crate::common::Cardinality;
-use crate::dynamic::cocurrent::MultiThreaded;
+pub use crate::dynamic::cocurrent::MultiThreaded;
 
 #[derive(PartialEq)]
 enum IsoHashGridState {
@@ -12,9 +12,9 @@ enum IsoHashGridState {
 }
 
 /// The IsoHashGrid is a struct build upon the basic `HashGrid` struct and stands
-/// for *Isolated HashGrid*. The grid provides to states of a `HashGrid`: A *present*
+/// for *Isolated HashGrid*. The grid provides two states of a `HashGrid`: A *present*
 /// or *current* view of the grid and a future, mutable view of it. It reproduces a 
-/// snapshot isolation strategy, where all read transactions are perfomerd over the
+/// snapshot isolation strategy, where all read transactions are performed over the
 /// present view of the grid while all write transactions occur on the future view. 
 /// 
 pub struct IsoHashGrid<const N:usize, E: Clone + Cardinality<N>> {

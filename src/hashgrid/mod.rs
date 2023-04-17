@@ -17,6 +17,8 @@ pub use crate::hashgrid::hashcell::HashCell;
 use crate::common::{Cardinality, Float, Idx, Point};
 
 
+/// Custom catcheable runtime errors when working with hash grids
+
 #[derive(Debug)]
 pub enum HashGridError {
     MismatchedGridSize(String),
@@ -24,6 +26,9 @@ pub enum HashGridError {
     WrongDimensionality(String)
 }
 
+/// Standard definitions on how to apply the periodic image policies. `LEFT`
+/// creates images for the n - 1 face of the cell and `RIGHT` to the n + 1
+/// face of the cell.  
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum PeriodicImage {
     NONE,
@@ -32,7 +37,11 @@ pub enum PeriodicImage {
     RIGHT
 }
 
+/// Common methods for the `HashGrid` and other `HashGrid` based structs to
+/// read their content at the grid or cell level.
+
 pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
+    /// Returns a reference of a slice from the cells composing the grid
     fn get_cells(&self) -> &[HashCell<N, E>];
 
     fn get_cells_index(&self) -> Vec<usize>;
@@ -61,6 +70,8 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
 
 }
 
+/// Common methods for the `HashGrid` and other `HashGrid` based structs to
+/// mutate their content at the grid or cell level.
 pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
     fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>];
 
@@ -232,7 +243,6 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
 }
 
 impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, E> {
-    /// Returns a reference of a slice from the cells composing the GRID
     fn get_cells(&self) -> &[HashCell<N, E>] {
         self.cells.as_slice()
     }

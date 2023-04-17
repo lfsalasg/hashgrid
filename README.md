@@ -4,9 +4,9 @@ The hashgrid library is an implementation of the hash grid data structure writte
 
 - N-Dimensional: You can represent any space by simply defining the dimensionality. It becomes specially useful if the implementation requires grids in 2 and 3 dimensional spaces at the same time or if you are doing some high dimensional calculations (k-neighbours for example)
 
-- Agnostic: Store any type of data that implements the `Clone` trait.
+- Agnostic: Store any type of data that implements the `Clone` and `Cardinality` traits.
 
-- Memory safe: Run cocurrent code without fear.
+- Memory safe: Run cocurrent code without fear using the `IsoHashGrid` struct and the `MultiThreaded` trait.
 
 - Periodic images: Specially useful for physics, the current implementation allows to create periodic images of the grid, tailored at the cell level.
 
