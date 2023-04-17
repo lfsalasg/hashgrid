@@ -6,126 +6,130 @@ use crate::common::Cardinality;
 use crate::dynamic::cocurrent::MultiThreaded;
 
 #[derive(PartialEq)]
-enum IsoHashgridState {
+enum IsoHashGridState {
     Committed,
     Initialized
 }
 
-pub struct IsoHashgrid<const N:usize, E: Clone + Cardinality<N>> {
-    images:[HashGrid<N, E>; 2],
-    p: usize,
-    f: usize,
-    state: IsoHashgridState
+/// The IsoHashGrid is a struct build upon the basic `HashGrid` struct and stands
+/// for *Isolated HashGrid*. The grid provides to states of a `HashGrid`: A *present*
+/// or *current* view of the grid and a future, mutable view of it. It reproduces a 
+/// snapshot isolation strategy, where all read transactions are perfomerd over the
+/// present view of the grid while all write transactions occur on the future view. 
+/// 
+pub struct IsoHashGrid<const N:usize, E: Clone + Cardinality<N>> {
+    present: HashGrid<N, E>,
+    future: HashGrid<N, E>,
+    state: IsoHashGridState
 }
 
-impl<const N:usize, E:Clone + Cardinality<N>> IsoHashgrid<N, E> {
-    pub fn from(grid:HashGrid<N, E>) -> IsoHashgrid<N, E> {
+impl<const N:usize, E:Clone + Cardinality<N>> IsoHashGrid<N, E> {
+    /// Creates an IsoHashGrid from a `HashGrid` instance
+    pub fn from(grid:HashGrid<N, E>) -> IsoHashGrid<N, E> {
         Self {
-            images: [grid.clone(), grid],
-            p: 0,
-            f: 1,
-            state: IsoHashgridState::Initialized
+            present: grid.clone(),
+            future: grid,
+            state: IsoHashGridState::Initialized
         }
     }
 
+    /// Updates the *present* view with the information of the *future* view.
+    /// Currently, it implements a naive `clone` strategy to clone the data
     pub fn commit(&mut self){
-        if self.p == 0 {
-            self.p = 1;
-            self.f = 0
-        }else {
-            self.p = 0;
-            self.f = 1
-        }
+        self.present = self.future.clone();
 
-        self.state = IsoHashgridState::Committed;
+        self.state = IsoHashGridState::Committed;
     }
 
+    /// Removes any changes in the *future* view, making it identical to the 
+    /// *present* view. Currently, it implements a naive `clone` strategy to
+    /// clone the data.
     pub fn rollback(&mut self) {
-        self.images[self.f] = self.images[self.p].clone()
+        self.future = self.present.clone();
     }
 }
 
-impl <const N:usize, E: Clone + Cardinality<N>> ReadGrid<N,E> for IsoHashgrid<N, E> {
+impl <const N:usize, E: Clone + Cardinality<N>> ReadGrid<N,E> for IsoHashGrid<N, E> {
     fn cell_center<I: crate::common::Idx>(&self, coord:I) -> [crate::common::Float; N] {
-        self.images[self.p].cell_center(coord)
+        self.present.cell_center(coord)
     }
 
     fn get_cells(&self) -> &[crate::HashCell<N, E>] {
-        self.images[self.p].get_cells()
+        self.present.get_cells()
     }
 
     fn get_cells_coords(&self) -> Vec<[usize; N]> {
-        self.images[self.p].get_cells_coords()
+        self.present.get_cells_coords()
     }
 
     fn get_cells_index(&self) -> Vec<usize> {
-        self.images[self.p].get_cells_index()
+        self.present.get_cells_index()
     }
 
     fn get_bounding_cell(&self, coord:[crate::common::Float; N]) -> Result<[usize; N], crate::HashGridError> {
-        self.images[self.p].get_bounding_cell(coord)
+        self.present.get_bounding_cell(coord)
     }
 
     fn get_dwellers<I: crate::common::Idx>(&self, coord:I) -> &[E] {
-        self.images[self.p].get_dwellers(coord)
+        self.present.get_dwellers(coord)
     }
 
     fn get_neighbors<I: crate::common::Idx>(&self, coord:I) -> Vec<(&crate::HashCell<N, E>, [isize; N])> {
-        self.images[self.p].get_neighbors(coord)
+        self.present.get_neighbors(coord)
     }
 
     fn get_neighbors_coords<I: crate::common::Idx>(&self, coord:I) -> Vec<([usize; N], [isize; N])> {
-        self.images[self.p].get_neighbors_coords(coord)
+        self.present.get_neighbors_coords(coord)
     }
 
     fn get_neighbors_dwellers<I: crate::common::Idx>(&self , coord:I) -> Vec<&E> {
-        self.images[self.p].get_neighbors_dwellers(coord)
+        self.present.get_neighbors_dwellers(coord)
     }
 
     fn get_all_dwellers(&self) -> Vec<&E> {
-        self.images[self.p].get_all_dwellers()
+        self.present.get_all_dwellers()
     }
 
     fn population(&self) -> usize {
-        self.images[self.p].population()
+        self.present.population()
     }
 
     fn shape(&self) -> [usize; N] {
-        self.images[self.p].shape()
+        self.present.shape()
     }
 
     fn size(&self) -> usize {
-        self.images[self.p].size()
+        self.present.size()
     }
 }
 
-impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashgrid<N, E> {
+impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashGrid<N, E> {
     
     fn get_mut_cells(&mut self) -> &mut [crate::HashCell<N, E>] {
-        self.images[self.f].get_mut_cells()
+        self.future.get_mut_cells()
     }
 
     fn get_mut_dwellers<I: crate::common::Idx>(&mut self, coord:I) -> &mut [E] {
-        self.images[self.f].get_mut_dwellers(coord)
+        self.future.get_mut_dwellers(coord)
     }
 
     fn set_dwellers<I: crate::common::Idx>(&mut self, coord:I, dwellers:Vec<E>) {
-        self.images[self.f].set_dwellers(coord, dwellers)
+        self.future.set_dwellers(coord, dwellers)
     }
     
     fn add_dweller<I: crate::common::Idx>(&mut self, coord:I, dweller:E) {
-        self.images[self.f].add_dweller(coord, dweller)
+        self.future.add_dweller(coord, dweller)
     }
 
     fn drop_dweller<I: crate::common::Idx>(&mut self, indx:usize, coord:I) {
-        self.images[self.f].drop_dweller(indx, coord)
+        self.future.drop_dweller(indx, coord)
     }
 
     fn move_dweller<I: crate::common::Idx>(&mut self, indx:usize, from:I, to:I) {
-        self.images[self.f].move_dweller(indx, from, to)
+        self.future.move_dweller(indx, from, to)
     }
 
     fn update_neighbors<I: crate::common::Idx>(&mut self, coord:I, periodic_images:[crate::PeriodicImage;N]) {
-        self.images[self.f].update_neighbors(coord, periodic_images)
+        self.future.update_neighbors(coord, periodic_images)
     }
 }

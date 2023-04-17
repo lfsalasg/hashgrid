@@ -1,6 +1,10 @@
+//! Contains the basic structs `HashCell` and HashGrid that provide
+//! a spatially defined structure to store objects that implement the 
+//! Cardinality trait.
+//!
+
 mod hashcell;
 mod unittest;
-
 
 use std::ops::{Index, IndexMut};
 
