@@ -2,7 +2,7 @@ mod cocurrent;
 mod unittest;
 
 use crate::hashgrid::{HashGrid, ReadGrid, WriteGrid};
-use crate::common::Cardinality;
+use crate::common::{Cardinality, Point};
 pub use crate::dynamic::cocurrent::MultiThreaded;
 
 #[derive(PartialEq)]
@@ -50,7 +50,11 @@ impl<const N:usize, E:Clone + Cardinality<N>> IsoHashGrid<N, E> {
 }
 
 impl <const N:usize, E: Clone + Cardinality<N>> ReadGrid<N,E> for IsoHashGrid<N, E> {
-    fn cell_center<I: crate::common::Idx>(&self, coord:I) -> [crate::common::Float; N] {
+    fn cell_anchor<I: crate::common::Idx>(&self, coord:I) -> Point<N> {
+        self.present.cell_anchor(coord)
+    }
+    
+    fn cell_center<I: crate::common::Idx>(&self, coord:I) -> Point<N> {
         self.present.cell_center(coord)
     }
 
@@ -66,8 +70,8 @@ impl <const N:usize, E: Clone + Cardinality<N>> ReadGrid<N,E> for IsoHashGrid<N,
         self.present.get_cells_index()
     }
 
-    fn get_bounding_cell(&self, coord:[crate::common::Float; N]) -> Result<[usize; N], crate::HashGridError> {
-        self.present.get_bounding_cell(coord)
+    fn bounding_cell_coord(&self, coord:Point<N>) -> Result<[usize; N], crate::HashGridError> {
+        self.present.bounding_cell_coord(coord)
     }
 
     fn get_dwellers<I: crate::common::Idx>(&self, coord:I) -> &[E] {

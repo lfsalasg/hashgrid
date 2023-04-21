@@ -21,15 +21,15 @@ use crate::common::{Cardinality, Float, Idx, Point};
 
 #[derive(Debug)]
 pub enum HashGridError {
-    MismatchedGridSize(String),
-    OutOfBounds(String),
+    MismatchedGridSize(String, usize, usize), // Error message, expected cells found cells
+    OutOfBounds(String, usize, Float), // Error message, dimension, grid size on this dimension
     WrongDimensionality(String)
 }
 
 /// Standard definitions on how to apply the periodic image policies. `LEFT`
 /// creates images for the n - 1 face of the cell and `RIGHT` to the n + 1
 /// face of the cell.  
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq,Serialize, Deserialize)]
 pub enum PeriodicImage {
     NONE,
     BOTH,
@@ -41,6 +41,7 @@ pub enum PeriodicImage {
 /// read their content at the grid or cell level.
 
 pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
+    // CELL LEVEL METHODS
     /// Returns a reference of a slice from the cells composing the grid
     fn get_cells(&self) -> &[HashCell<N, E>];
 
@@ -48,6 +49,14 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
 
     fn get_cells_coords(&self) -> Vec<[usize; N]>;
 
+    fn cell_anchor<I: Idx>(&self, coord:I) -> Point<N>;
+
+    fn cell_center<I: Idx>(&self, coord:I) -> Point<N>;
+    
+    fn bounding_cell_coord(&self, coord:Point<N>) -> Result<[usize; N], HashGridError>;
+
+    // DWELLERS LEVEL METHODS
+    
     fn get_dwellers<I: Idx>(&self, coord:I) -> &[E];
 
     fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<(&HashCell<N, E>, [isize; N])>;
@@ -58,15 +67,13 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
 
     fn get_all_dwellers(&self) -> Vec<&E>;
 
+    // GRID LEVEL METHODS
+
     fn population(&self) -> usize;
 
     fn size(&self) -> usize;
 
     fn shape(&self) -> [usize; N];
-
-    fn cell_center<I: Idx>(&self, coord:I) -> [Float; N];
-
-    fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError>;
 
 }
 
@@ -89,13 +96,14 @@ pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
 }
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
-/// elements. The `HashGrid` struct is defined over `N` dimensions of size `[T; N]` and contain cells of uniform
-/// size `dims`where the elements of type `E` are registered.
+/// elements. The `HashGrid` struct is defined over `N` dimensions of size `dims` and contain cells of uniform
+/// where the elements of type `E` are registered.
 #[derive(Clone, Debug)]
 pub struct HashGrid<const N:usize, E: Clone + Cardinality<N>> 
 {
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
+    periodicity: [PeriodicImage; N],
     pub dims: Point<N>
 }
 
@@ -103,11 +111,16 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
 
     /// Creates a uniform grid in the N-dimensional space with the same boundaries and 
     /// periodic conditions
-    pub fn generate_uniform_grid(grid:[usize; N], periodicity:[PeriodicImage; N], dims:Point<N>) -> Self{
+    pub fn generate_uniform_grid(
+        grid:[usize; N], 
+        periodicity:[PeriodicImage; N], 
+        dims:Point<N>) -> Self{
+        
         let e_size = grid.iter().fold(1, |acc, x| acc * x);
         let mut hashgrid = HashGrid {
             grid,
-            cells: vec![HashCell::<N, E>::new(periodicity); e_size],
+            cells: vec![HashCell::<N, E>::new(); e_size],
+            periodicity,
             dims
         };
         for i in 0..hashgrid.cells.len() {
@@ -122,22 +135,30 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
     /// Creates a grid in the N-dimensional space starting from a collection of `HashCell`. The 
     /// number of cells should be equal to the expected size of the grid. It returns the `MismatchedSize` error
     /// if the cells passed do not correspond to the dimensions of the Hashgrid
-    pub fn generate_from_cells(grid:[usize; N], cells:Vec<HashCell<N, E>>, dims:Point<N>) -> Result<HashGrid<N, E>, HashGridError>{
+    pub fn generate_from_cells(
+        grid:[usize; N], 
+        cells:Vec<HashCell<N, E>>,
+        periodicity:[PeriodicImage; N], 
+        dims:Point<N>) -> Result<HashGrid<N, E>, HashGridError>{
+        
         let expected_length = grid.iter().fold(1, |acc, x| acc * x);
         if cells.len() !=  expected_length {
             return Err(HashGridError::MismatchedGridSize(
-                format!("Expected number of cells was {} but  {} were found", expected_length, cells.len())
+                format!("Expected number of cells was {} but  {} were found", expected_length, cells.len()),
+                expected_length,
+                cells.len()
             ));
         }
 
         let mut hashgrid = HashGrid {
             grid,
             cells,
+            periodicity,
             dims
         };
 
         for i in 0..hashgrid.cells.len() {
-            hashgrid.cells[i].neighbors = hashgrid.list_combinations(hashgrid.ndim_from_1dim(i), hashgrid.cells[i].periodicity)
+            hashgrid.cells[i].neighbors = hashgrid.list_combinations(hashgrid.ndim_from_1dim(i), hashgrid.periodicity)
                 .iter()
                 .map(|x| (hashgrid.ndim_to_1dim(x.0), x.1))
                 .collect()
@@ -320,25 +341,63 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
         self.grid
     }
 
-    fn cell_center<I: Idx>(&self, coord:I) -> [Float; N] {
+    fn cell_anchor<I: Idx>(&self, coord:I) -> Point<N> {
         let cell = coord.deflate(self.grid);
-        let mut center = [0.0; N];
-        for dim in 0..cell.len() {
-            center[dim] = (self.dims[dim] / self.grid[dim] as Float) * (cell[dim] as Float + 0.5)
+        let cell_size = self.dims / self.grid;
 
-        }
-
-        center.map(|x| x.into())
+        let anchor = cell_size * cell;
+        
+        anchor
     }
 
-    fn get_bounding_cell(&self, coord:[Float; N]) -> Result<[usize; N], HashGridError> {
+    fn cell_center<I: Idx>(&self, coord:I) -> Point<N> {
+        let cell = coord.deflate(self.grid);
+        let cell_size = self.dims / self.grid;
+
+        let anchor = cell_size * cell;
+        let center = anchor + cell_size / 2.0;
+
+        center
+    }
+
+    fn bounding_cell_coord(&self, coord:Point<N>) -> Result<[usize; N], HashGridError> {
         let mut cell:[usize; N] = [0; N];
-        for c in 0..coord.len() {
-            let tmp = (coord[c] / self.dims[c]).floor() as usize;
-            if tmp > self.grid[c] {
-                return Err(HashGridError::OutOfBounds(format!("Coordinate in position {} is out of the grid {}", c, self.dims[c])));
+        //if coord >= Point::from_scalar(0.0) && coord <= self.dims {
+        //    println!("{:?}, {:?}", coord, self.dims);
+        //    let rel_position = coord / self.dims * self.grid;
+        //    for dim in 0..N {
+        //        cell[dim] = rel_position[dim] as usize;
+        //    }
+//
+        //    return Ok(cell)
+//
+        //}
+
+        for dim in 0..N {
+            
+            if coord[dim] >= 0.0 && coord[dim] <= self.dims[dim] {
+                cell[dim] = (coord[dim] / self.dims[dim] * self.grid[dim] as Float) as usize
+            }else if coord[dim] < 0.0 {
+                if self.periodicity[dim] == PeriodicImage::LEFT || self.periodicity[dim] == PeriodicImage::BOTH {
+                    let rel_cell = coord[dim] / self.dims[dim];  
+                    cell[dim] = ((self.dims[dim] - (rel_cell - rel_cell.ceil())) *  self.grid[dim] as Float) as usize;
+                    cell[dim] = ((self.dims[dim] + coord[dim] % self.dims[dim]) / self.dims[dim] * self.grid[dim] as Float) as usize;
+                }else {
+                    return Err(HashGridError::OutOfBounds(
+                        format!("In dimension {} object is {} from origin but grid cannot have negative values and it does not implement Periodicity", dim, coord[dim]), 
+                        dim, coord[dim]))
+                }
+            } else {
+                if self.periodicity[dim] == PeriodicImage::RIGHT || self.periodicity[dim] == PeriodicImage::BOTH {
+                    let rel_cell = coord[dim] / self.dims[dim];                    
+                    cell[dim] = ((rel_cell - rel_cell.floor()) * self.grid[dim] as Float) as usize;
+
+                }else {
+                    return Err(HashGridError::OutOfBounds(
+                        format!("In dimension {} object is {} from origin but grid has size {} and it does not implement Periodicity", dim, coord[dim], self.dims[dim]), 
+                        dim, coord[dim]))
+                }
             }
-            cell[c] = tmp
         }
 
         Ok(cell)
@@ -414,6 +473,7 @@ impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashGr
         let mut state = serializer.serialize_struct("HashGrid", 3)?;
         state.serialize_field("grid", &self.grid.to_vec())?;
         state.serialize_field("cells", &self.cells)?;
+        state.serialize_field("periodicity", &self.periodicity.to_vec())?;
         state.serialize_field("dims", &self.dims.to_vec())?;
         state.end()
     }
@@ -428,6 +488,7 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         struct HashGridHelper<const N:usize, E: Clone + Cardinality<N>> {
             grid: Vec<usize>,
             cells: Vec<HashCell<N, E>>,
+            periodicity: Vec<PeriodicImage>,
             dims: Vec<Float>
         }
 
@@ -435,6 +496,7 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         Ok(Self {
             grid: helper.grid.try_into().unwrap(),
             cells: helper.cells,
+            periodicity: helper.periodicity.try_into().unwrap(),
             dims: Point::from_vec(helper.dims).unwrap()
         })
     }

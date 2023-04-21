@@ -1,7 +1,6 @@
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde::de::{Deserialize, Deserializer};
 
-use crate::hashgrid::PeriodicImage;
 use crate::common::Cardinality;
 
 /// A representation of a cell contained inside a N-dimensional hash grid. It stores elements of type `E` and 
@@ -9,16 +8,14 @@ use crate::common::Cardinality;
 #[derive(Clone, Debug)]
 pub struct HashCell<const N:usize, E: Clone + Cardinality<N>> {
     pub dwellers: Vec<E>,
-    pub neighbors: Vec<(usize, [isize; N])>,
-    pub periodicity: [PeriodicImage; N] 
+    pub neighbors: Vec<(usize, [isize; N])>
 }
 
 impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
-    pub fn new (periodicity:[PeriodicImage; N]) -> Self{
+    pub fn new () -> Self{
         Self {
             dwellers: Vec::new(),
-            neighbors: Vec::new(),
-            periodicity
+            neighbors: Vec::new()
         }
     }
 
@@ -60,7 +57,6 @@ impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashCe
         let mut state = serializer.serialize_struct("HashCell", 3)?;
         state.serialize_field("dwellers", &self.dwellers)?;
         state.serialize_field("neighbors", &neighbors)?;
-        state.serialize_field("periodicity", &self.periodicity.to_vec())?;
         state.end()
     }
 }
@@ -75,7 +71,6 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         struct HashCellHelper<E: Clone> {
             dwellers: Vec<E>,
             neighbors: Vec<(usize, Vec<isize>)>,
-            periodicity: Vec<PeriodicImage>
         }
 
         let helper = HashCellHelper::deserialize(deserializer)?;
@@ -85,7 +80,6 @@ impl<'de, const N: usize, E: Clone + Deserialize<'de> + Cardinality<N>> Deserial
         Ok(Self {
             dwellers: helper.dwellers,
             neighbors,
-            periodicity: helper.periodicity.try_into().unwrap()
         })
     }
 }

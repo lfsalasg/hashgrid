@@ -77,13 +77,13 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
     let mut grid: HashGrid<3, LJSphere> = HashGrid::generate_uniform_grid(
         [num_grids, num_grids, num_grids], 
         [PeriodicImage::BOTH; 3], 
-        Point3D::new([cutoff, cutoff, cutoff]));
+        Point3D::from_scalar(dim));
 
     for i in 0..p_per_side {
         for j in 0..p_per_side {
             for k in 0..p_per_side {
                 let sphere = LJSphere{x:i as f32 * sep, y:j as f32 * sep, z:k as f32 * sep};
-                let coord = grid.get_bounding_cell([sphere.x, sphere.y, sphere.z]).unwrap();
+                let coord = grid.bounding_cell_coord(sphere.coord()).unwrap();
                 grid[coord].add_dweller(sphere);
             }
         }
@@ -106,7 +106,7 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
             }
 
             for (cell, pi) in neighbors.iter() {
-                let disp = Point3D::from_scalar(dim) * *pi;
+                let disp = grid.dims * *pi;
                 for j in cell.get_dwellers() {
                     let d = dwellers[i].coord().squared_distance(&(j.coord() + disp));
                     if d > squared_cutoff {
@@ -131,13 +131,13 @@ fn with_cells_in_parallel(p_per_side:u32, sep:f32, cutoff:f32, n_threads:usize) 
     let mut grid: HashGrid<3, LJSphere> = HashGrid::generate_uniform_grid(
         [num_grids, num_grids, num_grids], 
         [PeriodicImage::BOTH; 3], 
-        Point3D::new([cutoff, cutoff, cutoff]));
+        Point3D::from_scalar(dim));
 
     for i in 0..p_per_side {
         for j in 0..p_per_side {
             for k in 0..p_per_side {
                 let sphere = LJSphere{x:i as f32 * sep, y:j as f32 * sep, z:k as f32 * sep};
-                let coord = grid.get_bounding_cell([sphere.x, sphere.y, sphere.z]).unwrap();
+                let coord = grid.bounding_cell_coord(sphere.coord()).unwrap();
                 grid[coord].add_dweller(sphere);
             }
         }

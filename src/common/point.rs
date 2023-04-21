@@ -40,12 +40,19 @@ impl<const N:usize> Point<N> {
         self.0.to_vec()
     }
 
-    pub fn from_vec(vec:Vec<Float>) -> Result<Self, HashGridError> {
+    pub fn from_vec(vec:Vec<Float>) -> Result<Self, HashGridError>
+    {
         if vec.len() != N {
-            return Err(HashGridError::WrongDimensionality(format!("A vector of size {} was expected but instead a vector of size {} was found", N, vec.len())))
+            return Err(HashGridError::WrongDimensionality(
+                format!("A vector of size {} was expected but instead a vector of size {} was found", 
+                N, 
+                vec.len())))
         }
-
         Ok(Self(vec[0..N].try_into().unwrap()))
+    }
+
+    pub fn to_slice(&self) -> [Float; N] {
+        self.0
     }
 }
 
@@ -116,6 +123,18 @@ impl<const N: usize> Mul<Float> for Point<N> {
     }
 }
 
+impl<const N:usize> Mul<[usize; N]> for Point<N> {
+    type Output = Point<N>;
+
+    fn mul(self, rhs: [usize; N]) -> Point<N> {
+        let mut result = [0.0; N];
+        for i in 0..N {
+            result[i] = self.0[i] * rhs[i] as Float;
+        }
+        Point(result)
+    }
+}
+
 impl<const N: usize> Mul<[isize; N]> for Point<N> {
     type Output = Point<N>;
 
@@ -168,6 +187,19 @@ impl<const N: usize> Div<Point<N>> for Float {
         for i in 0..N {
             result[i] = self / rhs.0[i];
         }
+        Point(result)
+    }
+}
+
+impl<const N: usize> Div<[usize; N]> for Point<N> {
+    type Output = Point<N>;
+    
+    fn div(self, rhs: [usize; N]) -> Self::Output {
+        let mut result = [0.0; N];
+        for i in 0..N {
+            result[i] = self.0[i] / rhs[i] as Float;
+        }
+
         Point(result)
     }
 }

@@ -125,9 +125,22 @@ mod test {
 
     #[test]
     fn test_bounding_cell() {
-        let grid = simple_grid();
-        assert_eq!(grid.get_bounding_cell([1.5, 0.0, 2.1]).unwrap(), [1, 0, 2])
-        
+        let grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
+            [3, 3, 3], 
+            [PeriodicImage::BOTH, PeriodicImage::BOTH, PeriodicImage::NONE], 
+            Point3D::from_scalar(1.0)
+        );
+
+        assert_eq!(grid.bounding_cell_coord(Point3D::from_scalar(0.1)).unwrap(), [0, 0, 0]);
+        assert_eq!(grid.bounding_cell_coord(Point3D::from_scalar(0.5)).unwrap(), [1, 1, 1]);
+        assert_eq!(grid.bounding_cell_coord(Point3D::new([1.5, 0.1, 0.1])).unwrap(), [1, 0, 0]);
+        assert_eq!(grid.bounding_cell_coord(Point3D::new([-1.1, 0.1, 0.1])).unwrap(), [2, 0, 0]);
+        match grid.bounding_cell_coord(Point3D::new([0.5, 0.5, 1.3])) {
+            Ok(_) => {
+                panic!("Should panic")
+            }
+            Err(_) => {}
+        }
     }
 
     #[test]
@@ -140,11 +153,6 @@ mod test {
                 Point3D::new([3.0, 3.0, 3.0]),
             ],
             neighbors: vec![(0, [0,0,0]), (2, [0,0,0])],
-            periodicity: [
-                PeriodicImage::BOTH,
-                PeriodicImage::BOTH,
-                PeriodicImage::BOTH,
-            ],
         };
 
         // serialize the HashCell struct to JSON
@@ -167,5 +175,15 @@ mod test {
         println!("{}", json);
         let new_grid: HashGrid<2, Point2D> = serde_json::from_str(&json).unwrap();
         assert_eq!(grid.cells.len(), new_grid.cells.len())
+    }
+
+    #[test]
+    fn test_anchor_and_center() {
+        let grid = simple_grid();
+        assert_eq!(grid.cell_anchor([0, 0, 0]), Point3D::from_scalar(0.0));
+        assert_eq!(grid.cell_anchor([1, 0, 0]), Point3D::new([1.0/3.0, 0.0, 0.0]));
+        
+        assert_eq!(grid.cell_center([0, 0, 0]), Point3D::from_scalar(1.0/6.0));
+        assert_eq!(grid.cell_center([1, 0, 0]), Point3D::new([1.0/2.0, 1.0/6.0, 1.0/6.0]))
     }
 }
