@@ -4,7 +4,7 @@ use crossbeam::scope;
 
 use crate::common::Cardinality;
 use crate::dynamic::IsoHashGrid;
-use crate::hashgrid::{HashGrid, HashCell, ReadGrid, WriteGrid};
+use crate::core::{HashGrid, HashCell, ReadGrid, WriteGrid};
 
 /// The MultiThreaded trait provides a set of methods to read and mutate
 /// `IsoHashGrid` instances cocurrently, providing a [serializable isolation

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
     use std::sync::Arc;
-    use crate::hashgrid::{HashGrid, HashCell, PeriodicImage, WriteGrid, ReadGrid};
+    use crate::core::{HashGrid, HashCell, PeriodicImage, WriteGrid, ReadGrid};
     use crate::dynamic::{IsoHashGrid, MultiThreaded};
     use crate::common::Point2D;
     

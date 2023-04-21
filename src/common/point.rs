@@ -4,7 +4,7 @@ use serde::ser::{Serialize, Serializer};
 use serde::de::{Deserialize, Deserializer};
 
 use crate::common::{Cardinality, Float};
-use crate::hashgrid::HashGridError;
+use crate::core::HashGridError;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point<const N: usize>([Float; N]);

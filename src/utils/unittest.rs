@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::hashgrid::{HashGrid, PeriodicImage, ReadGrid};
+    use crate::core::{HashGrid, PeriodicImage, ReadGrid};
     use crate::utils::relocate_dwellers;
     use crate::common::{Point2D, Cardinality};
 

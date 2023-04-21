@@ -12,7 +12,7 @@ use serde::{Serialize, Deserialize};
 use serde::ser::{Serializer, SerializeStruct};
 use serde::de::{Deserializer};
 
-pub use crate::hashgrid::hashcell::HashCell;
+pub use crate::core::hashcell::HashCell;
 
 use crate::common::{Cardinality, Float, Idx, Point};
 

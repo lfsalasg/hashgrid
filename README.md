@@ -20,20 +20,25 @@ on the dimensions of it or by passing an initialized vector of `HashCell`.
 // of edge 1.0 each. All cells can see their periodic images on all of 
 // its faces.
 
-let mut grid:HashGrid<3, u16> = HashGrid::generate_uniform_grid(
-    [3, 3, 3],  
-    [PeriodicImage::BOTH; 3],
-    [1.0, 1.0, 1.0]
-);
+use hashgrid::{HashGrid, PeriodicImage, ReadGrid, WriteGrid};
+use hashgrid::common::Point3D;
 
-// Now we populate each cell
-let mut l = 0;
-for i in 0..3 {
-    for j in 0..3 {
-        for k in 0..3 {
-            grid.set_dwellers([i, j, k], vec![l, l+1, l+2]);
-            l += 3;
+let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
+        [3, 3, 3],  
+        [PeriodicImage::BOTH; 3],
+        Point3D::new([1.0, 1.0, 1.0])
+    );
+
+    let mut l = 0;
+    for i in 0..3 {
+        for j in 0..3 {
+            for k in 0..3 {
+                grid.set_dwellers([i, j, k], vec![Point3D::from_scalar(l as f32), 
+                Point3D::from_scalar((l+1) as f32), 
+                Point3D::from_scalar((l+2) as f32)
+            ]);
+                l += 3;
+            }
         }
     }
-}
 ```

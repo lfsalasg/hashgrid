@@ -1,7 +1,7 @@
 mod cocurrent;
 mod unittest;
 
-use crate::hashgrid::{HashGrid, ReadGrid, WriteGrid};
+use crate::core::{HashGrid, ReadGrid, WriteGrid};
 use crate::common::{Cardinality, Point};
 pub use crate::dynamic::cocurrent::MultiThreaded;
 
