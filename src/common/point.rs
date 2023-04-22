@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Div, Index, IndexMut, Deref};
+use std::ops::{Add, Sub,Mul, Div, Index, IndexMut, Deref};
 
 use serde::ser::{Serialize, Serializer};
 use serde::de::{Deserialize, Deserializer};
@@ -93,6 +93,43 @@ impl<const N: usize> Add<Point<N>> for Float {
         let mut out = rhs.clone();
         for i in 0..rhs.0.len() {
             out.0[i] += self
+        }
+
+        out
+    }
+} 
+
+impl<const N: usize> Sub for Point<N> {
+    type Output = Point<N>;
+
+    fn sub(self, rhs: Point<N>) -> Point<N> {
+        let mut result = [0.0; N];
+        for i in 0..N {
+            result[i] = self.0[i] - rhs.0[i];
+        }
+        Point(result)
+    }
+}
+
+impl<const N: usize> Sub<Float> for Point<N> {
+    type Output = Self;
+    fn sub(self, rhs: Float) -> Self::Output {
+        let mut out = self.clone();
+        for i in 0..self.0.len() {
+            out.0[i] -= rhs
+        }
+
+        out
+    }
+}
+
+impl<const N: usize> Sub<Point<N>> for Float {
+    type Output = Point<N>;
+
+    fn sub(self, rhs: Point<N>) -> Self::Output {
+        let mut out = rhs.clone();
+        for i in 0..rhs.0.len() {
+            out.0[i] -= self
         }
 
         out
