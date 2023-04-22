@@ -42,3 +42,7 @@ let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
         }
     }
 ```
+
+# License 
+
+The current repository is protected by the MIT License. See the `LICENSE.md` file for further information.
