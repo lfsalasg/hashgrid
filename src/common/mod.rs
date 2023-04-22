@@ -1,6 +1,7 @@
 //! Exposes common structs, traits and types, useful to work with the 
 //! hashgrid crate.
 mod point;
+mod unittest;
 
 pub use point::{Point, Point2D, Point3D};
 
