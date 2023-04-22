@@ -35,8 +35,8 @@ impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
         self.dwellers.push(dweller)
     }
 
-    pub fn drop_dweller(&mut self, indx:usize) {
-        self.dwellers.remove(indx);
+    pub fn drop_dweller(&mut self, indx:usize) -> E{
+        self.dwellers.remove(indx)
     }
 
     pub fn population(&self) -> usize {

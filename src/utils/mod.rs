@@ -1,3 +1,4 @@
+//! Utilities for working with the HashGrid family.
 mod unittest;
 
 use crate::{HashGrid, ReadGrid, WriteGrid};

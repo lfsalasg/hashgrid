@@ -125,7 +125,7 @@ impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashGrid<N
         self.future.add_dweller(coord, dweller)
     }
 
-    fn drop_dweller<I: crate::common::Idx>(&mut self, indx:usize, coord:I) {
+    fn drop_dweller<I: crate::common::Idx>(&mut self, indx:usize, coord:I) -> E{
         self.future.drop_dweller(indx, coord)
     }
 
@@ -133,7 +133,4 @@ impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashGrid<N
         self.future.move_dweller(indx, from, to)
     }
 
-    fn update_neighbors<I: crate::common::Idx>(&mut self, coord:I, periodic_images:[crate::PeriodicImage;N]) {
-        self.future.update_neighbors(coord, periodic_images)
-    }
 }

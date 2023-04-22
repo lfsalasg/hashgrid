@@ -42,37 +42,59 @@ pub enum PeriodicImage {
 
 pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
     // CELL LEVEL METHODS
+
     /// Returns a reference of a slice from the cells composing the grid
     fn get_cells(&self) -> &[HashCell<N, E>];
 
+    /// Returns a vector with the indexes of cells
     fn get_cells_index(&self) -> Vec<usize>;
 
+    /// Returns a vector of the coordinates of all cells in the grid
     fn get_cells_coords(&self) -> Vec<[usize; N]>;
 
+    /// Returns an instance of `Point<N>` that represents the anchor of a cell. The anchor is the 
+    /// vertex formed by the smallest point bounded by the cell on each dimension.
     fn cell_anchor<I: Idx>(&self, coord:I) -> Point<N>;
 
+    /// Returns an instance of `Point<N>` that represents the center of a cell.
     fn cell_center<I: Idx>(&self, coord:I) -> Point<N>;
-    
+
+    /// Returns the coordinates of the cell that geometrically contains the coordinates `coord`. 
+    /// Notice that an element can be *registered* to one cell but can be geometrically located
+    /// inside another one.  
     fn bounding_cell_coord(&self, coord:Point<N>) -> Result<[usize; N], HashGridError>;
 
     // DWELLERS LEVEL METHODS
     
+    /// Returns a reference to a slice of all elements inside a cell with coordenates `coord`
     fn get_dwellers<I: Idx>(&self, coord:I) -> &[E];
 
+    /// Returns a vector of tuples. The first element of the tuple is a reference to a neighboring
+    /// cell and the second element is the periodic image where the neighbor is located. If the
+    /// neighboring cell is located in the real grid, the second element is `[0; N]`
     fn get_neighbors<I: Idx>(&self, coord:I) -> Vec<(&HashCell<N, E>, [isize; N])>;
 
+    /// Returns a vector of tuples. The first element of the tuple is the coordinates of a neighboring
+    /// cell and the second element is the periodic image where the neighbor is located. If the
+    /// neighboring cell is located in the real grid, the second element is `[0; N]`
     fn get_neighbors_coords<I: Idx>(&self, coord:I) -> Vec<([usize; N], [isize; N])>;
 
+    /// Returns a vector of references to elements registered in the grid. This vector is a 
+    /// collection of the elements neighboring the cell with coordinates `coord`.
     fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E>;
 
+    /// Returns a vector of references to all the elements registered in the grid
     fn get_all_dwellers(&self) -> Vec<&E>;
 
     // GRID LEVEL METHODS
 
+    /// Shorthand for counting the total number of elements registered in the grid
     fn population(&self) -> usize;
 
+    /// Shorthand for counting the total cells inside the grid
     fn size(&self) -> usize;
 
+    /// Returns a slice with the shape *i.e.* number of cells on each dimension, of the grid.
     fn shape(&self) -> [usize; N];
 
 }
@@ -80,19 +102,27 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
 /// Common methods for the `HashGrid` and other `HashGrid` based structs to
 /// mutate their content at the grid or cell level.
 pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
+    /// Returns a mutable reference of a slice with the cells inside the grid
     fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>];
 
+    /// Returns a mutable reference of the elements registered inside a cell with coordinates
+    /// `coord`
     fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E];
 
+    /// Register the elements of a cell with coordinates `coord` using the `dwellers` vector.
+    /// **Notice** this method will overwrite any other registered dweller.
     fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>);   
 
+    /// Register a new `dweller` to the cell with coordinates `coord`
     fn add_dweller<I: Idx>(&mut self, coord:I, dweller:E);
 
-    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I);
+    /// Drops the element with index `indx` registered in the cell with coordinates `coord` and
+    /// returns the element. Internally, it performs a `Vec<E>::remove()` operation so it could be
+    ///  slow with *O(n)* as the worst case scenario.
+    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) -> E;
 
+    /// Drops a dweller from cell `from` and register it into `to`
     fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I);
-
-    fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]);
 }
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
@@ -410,14 +440,11 @@ impl<const N: usize, E: Clone + Cardinality<N>> WriteGrid<N, E> for HashGrid<N, 
         self.cells.as_mut_slice()
     }
 
-    /// Returns a mutable referece of the elements registered under a cell with coordinates `coord` in the
-    /// N-dimensional space
     fn get_mut_dwellers<I: Idx>(&mut self, coord:I) -> &mut [E] {
         let indx = coord.flatten(self.grid);
         self.cells[indx].get_mut_dwellers()
     }
 
-    /// Sets the dwellers of a certain cell. It overwrites any previous registered dweller
     fn set_dwellers<I: Idx>(&mut self, coord:I, dwellers:Vec<E>) {
         let indx = coord.flatten(self.grid);
         self.cells[indx].set_dwellers(dwellers)
@@ -428,7 +455,7 @@ impl<const N: usize, E: Clone + Cardinality<N>> WriteGrid<N, E> for HashGrid<N, 
         self.cells[indx].add_dweller(dweller)    
     }
 
-    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) {
+    fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) -> E {
         let cell_index = coord.flatten(self.grid);
         self.cells[cell_index].drop_dweller(indx)
     }
@@ -436,17 +463,8 @@ impl<const N: usize, E: Clone + Cardinality<N>> WriteGrid<N, E> for HashGrid<N, 
     fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I) {
         let from_indx = from.flatten(self.grid);
         let to_indx = to.flatten(self.grid);
-        let dw = self.cells[from_indx].dwellers[indx].clone();
-        self.cells[from_indx].drop_dweller(indx);
+        let dw = self.cells[from_indx].drop_dweller(indx);
         self.cells[to_indx].add_dweller(dw);
-    }
-
-    fn update_neighbors<I: Idx>(&mut self, coord:I, periodic_images:[PeriodicImage;N]) {
-        let cell_index = coord.flatten(self.grid);
-        self.cells[cell_index].neighbors = self.list_combinations(coord, periodic_images)
-                .iter()
-                .map(|x| (self.ndim_to_1dim(x.0), x.1))
-                .collect();
     }
 
 }
