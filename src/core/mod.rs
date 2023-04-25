@@ -243,31 +243,36 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
         grid: [isize; N], 
         all_combs: &mut Vec<([usize; N], [isize; N])>, 
         periodic_images:&[PeriodicImage;N]) {
-
+        /*
         let translations:Vec<isize> = match periodic_images[i] {
             PeriodicImage::NONE => {vec![0]},
             PeriodicImage::LEFT => {vec![0, -1]},
             PeriodicImage::RIGHT => {vec![0, 1]},
             PeriodicImage::BOTH => {vec![0, -1, 1]}
         };
+        */
+        let translations = [0, -1, 1];
         if i == N - 1 {
             for k in translations { // Modifies the last dimension
                 let mut cell = comb.clone();
                 let mut grid = grid.clone();
 
                 let dim = cell[i]  as isize + k;
-                if dim < 0 {
-                    cell[i] = self.grid[i] - 1;
-                    grid[i] = -1;
-                }else if dim >= self.grid[i] as isize {
-                    cell[i] = 0;
-                    grid[i] = 1;
-                }else {
+                
+                if dim >= 0 && dim < self.grid[i] as isize{
                     cell[i] = dim as usize;
                     grid[i] = 0;
+                    all_combs.push((cell, grid))
                 }
-
-                all_combs.push((cell, grid)) 
+                else if dim < 0 && (periodic_images[i] == PeriodicImage::LEFT || periodic_images[i] == PeriodicImage::BOTH) {
+                    cell[i] = self.grid[i] - 1;
+                    grid[i] = -1;
+                    all_combs.push((cell, grid)); 
+                }else if dim >= self.grid[i] as isize &&  (periodic_images[i] == PeriodicImage::RIGHT || periodic_images[i] == PeriodicImage::BOTH) {
+                    cell[i] = 0;
+                    grid[i] = 1;
+                    all_combs.push((cell, grid)); 
+                }                
             }
             return
         }
@@ -276,18 +281,23 @@ impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
                 let mut cell = comb.clone();
                 let mut grid = grid.clone();
                 let dim = cell[i]  as isize + k;
-                if dim < 0 {
-                    cell[i] = self.grid[i] - 1;
-                    grid[i] = -1
-                }else if dim >= self.grid[i] as isize {
-                    cell[i] = 0;
-                    grid[i] = 1;
-                }else {
+                if dim >= 0 && dim < self.grid[i] as isize{
                     cell[i] = dim as usize;
                     grid[i] = 0;
-                }
 
-                self.list_combinations_helper(i + 1, cell, grid, all_combs, periodic_images)
+                    self.list_combinations_helper(i + 1, cell, grid, all_combs, periodic_images)
+                }
+                else if dim < 0 && (periodic_images[i] == PeriodicImage::LEFT || periodic_images[i] == PeriodicImage::BOTH) {
+                    cell[i] = self.grid[i] - 1;
+                    grid[i] = -1;
+
+                    self.list_combinations_helper(i + 1, cell, grid, all_combs, periodic_images)
+                }else if dim >= self.grid[i] as isize &&  (periodic_images[i] == PeriodicImage::RIGHT || periodic_images[i] == PeriodicImage::BOTH) {
+                    cell[i] = 0;
+                    grid[i] = 1;
+
+                    self.list_combinations_helper(i + 1, cell, grid, all_combs, periodic_images)
+                }     
             }
         }
     }

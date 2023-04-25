@@ -1,6 +1,6 @@
 # Hashgrid
 
-*Current version: 0.1.0*
+*Current version: 0.1.x*
 
 The hashgrid library is an implementation of the hash grid data structure written in pure rust. It provides a N-dimensional, agnostic grid abstraction to store and manipulate data in contiguous uniform cells. Some features of this crate include:
 
@@ -18,9 +18,8 @@ Initializing a hashgrid is very simple. You can initialize an empty grid based
 on the dimensions of it or by passing an initialized vector of `HashCell`. 
 
 ```
-// Define a 3-dimensional grid that stores `u16` values and is divided in 3 by 3 by 3 cell 
-// of edge 1.0 each. All cells can see their periodic images on all of 
-// its faces.
+// Define a 3-dimensional grid that stores `Point3D` elements and is divided in 3 by 3 by 3 cell 
+// of edge 1.0. Periodicity is set for all faces of the grid
 
 use hashgrid::{HashGrid, PeriodicImage, ReadGrid, WriteGrid};
 use hashgrid::common::Point3D;
@@ -31,6 +30,7 @@ let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
         Point3D::new([1.0, 1.0, 1.0])
     );
 
+// Populate the grid with Point3D elements at random location. 
     let mut l = 0;
     for i in 0..3 {
         for j in 0..3 {

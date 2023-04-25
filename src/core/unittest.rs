@@ -68,12 +68,49 @@ mod test {
         assert_eq!(result[0].1, [0, 0]);
         assert_eq!(result[result.len()-1].0, [2, 2]);
 
-        let hashgrid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid([3,3], [PeriodicImage::BOTH; 2], Point2D::new([3.0, 3.0]));
         let result = hashgrid.list_combinations([2, 2], [PeriodicImage::BOTH, PeriodicImage::BOTH]);
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].0, [2, 1]);
         assert_eq!(result[result.len()-1].0, [0, 0]);
-        assert_eq!(result[result.len()-1].1, [1, 1], "{:?}", result[result.len()-1].1)
+        assert_eq!(result[result.len()-1].1, [1, 1], "{:?}", result[result.len()-1].1);
+    }
+
+    #[test]
+    fn test_neighbors() {
+        let grid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid(
+            [3,3], 
+            [PeriodicImage::BOTH, PeriodicImage::NONE], 
+            Point2D::new([3.0, 3.0])
+        );
+
+        assert_eq!(grid[[1,1]].neighbors.len(), 8);
+        assert_eq!(grid[[0,1]].neighbors.len(), 8);
+        assert_eq!(grid[[1,0]].neighbors.len(), 5);
+        assert_eq!(grid[[0,0]].neighbors.len(), 5);
+
+        let grid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid(
+            [3, 3], 
+            [PeriodicImage::LEFT, PeriodicImage::RIGHT], 
+            Point2D::new([3.0, 3.0])
+        );
+
+        assert_eq!(grid[[1,1]].neighbors.len(), 8);
+        assert_eq!(grid[[0,1]].neighbors.len(), 8);
+        assert_eq!(grid[[2,1]].neighbors.len(), 5);
+        assert_eq!(grid[[0,2]].neighbors.len(), 8);
+        assert_eq!(grid[[2,0]].neighbors.len(), 3);
+
+        let grid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid(
+            [3, 3], 
+            [PeriodicImage::NONE; 2], 
+            Point2D::new([3.0, 3.0])
+        );
+
+        assert_eq!(grid[[1,1]].neighbors.len(), 8);
+        assert_eq!(grid[[0,0]].neighbors.len(), 3);
+        assert_eq!(grid[[2,2]].neighbors.len(), 3);
+        assert_eq!(grid[[0,1]].neighbors.len(), 5);
+
 
     }
 
