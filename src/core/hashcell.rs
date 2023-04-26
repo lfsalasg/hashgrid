@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde::de::{Deserialize, Deserializer};
 
@@ -44,6 +46,20 @@ impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
     }
     
 }
+
+impl<const N:usize, E: Clone + Cardinality<N>> Index<usize> for HashCell<N, E> {
+    type Output = E;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.dwellers[index]
+    }
+}
+
+impl<const N:usize, E: Clone + Cardinality<N>> IndexMut<usize> for HashCell<N, E> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.dwellers[index]   
+    }
+}
+
 
 
 impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashCell<N, E> {
