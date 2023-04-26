@@ -1,4 +1,5 @@
-use plotters::prelude::*;
+use plotters::prelude::*; //To use it the fontconfig library should be installed
+                          // to install it run apt install libfontconfig1-dev
 use rand::{Rng, thread_rng};
 use rand_distr::{Normal, Distribution};
 
@@ -150,6 +151,7 @@ fn main() {
         average_energy = (step as f32 * average_energy + total_energy) / (step + 1) as f32
 
     }
+
     graph(history).unwrap();
     println!("The average energy of the system is {}", average_energy)
 
