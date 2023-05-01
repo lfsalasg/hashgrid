@@ -115,6 +115,7 @@ fn main() {
     let mut total_energy = 0.0;
     let mut average_energy = 0.0;
     let mut history:Vec<(f32, f32)> = Vec::with_capacity(args.steps / 100);
+    let mut movements = (0, 0); // total vs accepted
 
     for cell_index in grid.get_cells_index() {
         for dweller in grid.get_dwellers(cell_index) {
@@ -138,6 +139,7 @@ fn main() {
 
         for cell_index in grid.get_cells_index() {
             for i in 0..grid[cell_index].population() {
+                movements.0 += 1;
                 let translate = Point3D::new([
                     normal.sample(&mut rng),
                     normal.sample(&mut rng),
@@ -167,6 +169,7 @@ fn main() {
                     grid[cell_index][i].y = new_pos[1];
                     grid[cell_index][i].z = new_pos[2];
                 }
+                movements.1 += 1;
             }
             
         }
@@ -176,6 +179,7 @@ fn main() {
     }
 
     graph(history).unwrap();
-    println!("The average energy of the system is {}", average_energy)
+    println!("The average energy of the system is {}", average_energy);
+    println!("Number of accepted movements: {} / {}", movements.0, movements.1)
 
 }
