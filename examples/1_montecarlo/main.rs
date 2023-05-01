@@ -1,7 +1,8 @@
-use plotters::prelude::*; //To use it the fontconfig library should be installed
+use plotters::prelude::*; //To use this the fontconfig library should be installed
                           // to install it run apt install libfontconfig1-dev
 use rand::{Rng, thread_rng};
 use rand_distr::{Normal, Distribution};
+use clap::Parser;
 
 use hashgrid::{HashGrid, PeriodicImage, ReadGrid, WriteGrid};
 use hashgrid::common::{Cardinality, Point3D};
@@ -62,27 +63,49 @@ impl Cardinality<3> for LJSphere {
     }
 }
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, default_value_t = 250.0)]
+    temperature: f32,
+    #[arg(short, long, default_value_t = 27.0)]
+    box_size: f32,
+    #[arg(short, long, default_value_t = 100)]
+    n_particles: i32,
+    #[arg(short, long, default_value_t = 9.0)]
+    cutoff: f32,
+    #[arg(short, long, default_value_t = 60000)]
+    steps: usize
+}
+
 fn main() {
     // Create the hashgrid and populate it with 300 spheres. We use a 27.0 A box
     // with periodic image 
+    let args = Args::parse();
 
-    let cutoff2 = 81.0;
-    let steps = 60000;
+    let cutoff2 = args.cutoff.powi(2);
+    if args.cutoff > 2.0 * args.box_size {
+        panic!("Irrecoverable error: The box size must be at least two times the cutoff")
+    }
+    
+    let n_grids = (args.box_size / args.cutoff) as usize;
+    println!("Creating hashgrid. Grid shape {} x {} x {}", n_grids, n_grids, n_grids);
+
 
     let mut grid:HashGrid<3, LJSphere> = HashGrid::generate_uniform_grid(
-        [3; 3], 
+        [n_grids; 3], 
         [PeriodicImage::BOTH; 3], 
-        Point3D::from_scalar(27.0)
+        Point3D::from_scalar(args.box_size)
     );
 
     let mut rng = thread_rng();
-    let normal = Normal::new(2.7, 0.5).unwrap();
+    let normal = Normal::new(args.box_size * 0.05, 0.5).unwrap();
 
-    for _ in 0..100 {
+    for _ in 0..args.n_particles {
         let particle = LJSphere {
-            x: rng.gen_range(0.0..27.0),
-            y: rng.gen_range(0.0..27.0),
-            z: rng.gen_range(0.0..27.0),
+            x: rng.gen_range(0.0..args.box_size),
+            y: rng.gen_range(0.0..args.box_size),
+            z: rng.gen_range(0.0..args.box_size),
         };
 
         grid.add_dweller(grid.bounding_cell_coord(particle.coord()).unwrap(), particle)
@@ -91,14 +114,14 @@ fn main() {
     // Calculate the intial energy for each element in the grid and the total grid energy
     let mut total_energy = 0.0;
     let mut average_energy = 0.0;
-    let mut history:Vec<(f32, f32)> = Vec::with_capacity(steps / 100);
+    let mut history:Vec<(f32, f32)> = Vec::with_capacity(args.steps / 100);
 
     for cell_index in grid.get_cells_index() {
         for dweller in grid.get_dwellers(cell_index) {
             for neighbor in grid.get_neighbors_dwellers(cell_index) {
                 let d2 = dweller.coord().distance(&neighbor.coord());
                 if d2 <= cutoff2 {
-                    let energy = pairwise_energy(35.0, 13.69, d2);
+                    let energy = pairwise_energy(158.5, 13.838, d2);
                     total_energy += energy;
                 }
             }
@@ -108,7 +131,7 @@ fn main() {
     total_energy /= 2.0;
 
     // Now we do the canonical Monte Carlo
-    for step in 0..steps {
+    for step in 0..args.steps {
         if step % 100 == 0{
             history.push((step as f32, total_energy))
         }
@@ -128,16 +151,16 @@ fn main() {
                     let current_d2 = neighbor.coord().distance(&grid[cell_index][i].coord());
                     let new_d2 = neighbor.coord().distance(&new_pos);
                     if current_d2 <= cutoff2 {
-                        current_particle_energy += pairwise_energy(35.0, 13.69, current_d2);
+                        current_particle_energy += pairwise_energy(158.5, 13.838, current_d2);
                     }
                     if new_d2 <= cutoff2 {
                         
-                        proposed_particle_energy += pairwise_energy(35.0, 13.69, new_d2) 
+                        proposed_particle_energy += pairwise_energy(158.5, 13.838, new_d2) 
                     }
                 }
 
                 let new_energy = total_energy + proposed_particle_energy - current_particle_energy;
-                let prob = metropolis_criteria(new_energy, total_energy, 200.0);
+                let prob = metropolis_criteria(new_energy, total_energy, args.temperature);
                 if prob > rng.gen() {
                     total_energy = new_energy;
                     grid[cell_index][i].x = new_pos[0];

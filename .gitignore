@@ -1,2 +1,10 @@
+# File extensions
+*.jpg
+*.png
+# Directories
 /target
+
+# Specific files
 Cargo.lock
+
+# Exceptions
