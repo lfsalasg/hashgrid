@@ -133,4 +133,16 @@ impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashGrid<N
         self.future.move_dweller(indx, from, to)
     }
 
+    fn purge<I: crate::common::Idx>(&mut self, coord:I, indices:&mut [usize]) -> Vec<E> {
+        self.future.purge(coord, indices)
+    }
+
+    fn purge_if<I: crate::common::Idx, F> (&mut self, coord:I, f:F) -> Vec<E> 
+        where
+            F: Fn(&E) -> bool 
+    {
+        
+        self.future.purge_if(coord, f)
+    }
+
 }

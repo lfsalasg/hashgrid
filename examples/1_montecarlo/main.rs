@@ -61,6 +61,12 @@ impl Cardinality<3> for LJSphere {
     fn coord(&self) -> Point3D {
         Point3D::new([self.x, self.y, self.z])
     }
+
+    fn set_coord(&mut self, coord:Point3D) {
+        self.x = coord[0];
+        self.y = coord[1];
+        self.z = coord[2];
+    }
 }
 
 #[derive(Parser, Debug)]
