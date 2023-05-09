@@ -60,6 +60,10 @@ impl<const N: usize> Cardinality<N> for Point<N> {
     fn coord(&self) -> Self {
         *self
     }
+
+    fn set_coord(&mut self, coord:Point<N>) {
+        *self = coord;
+    }
 }
 
 impl<const N: usize> Add for Point<N> {
@@ -252,6 +256,29 @@ impl<const N: usize> Index<usize> for Point<N> {
 impl<const N: usize> IndexMut<usize> for Point<N> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
+    }
+}
+
+impl<const N:usize> IntoIterator for Point<N> {
+    type Item = Float;
+    type IntoIter = std::array::IntoIter<Self::Item, N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<const N:usize> FromIterator<Float> for Point<N> {
+    fn from_iter<I: IntoIterator<Item=Float>>(iter: I) -> Self {
+        let mut k:usize = 0;
+        let mut raw = [0.0; N];
+
+        for i in iter {
+            raw[k] = i;
+            k += 1;
+        }   
+
+        Point(raw)
     }
 }
 

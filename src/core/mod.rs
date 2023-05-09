@@ -121,8 +121,19 @@ pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
     ///  slow with *O(n)* as the worst case scenario.
     fn drop_dweller<I: Idx>(&mut self, indx:usize, coord:I) -> E;
 
-    /// Drops a dweller from cell `from` and register it into `to`
+    /// Drops a dweller from cell `from` and register it into `to`. Unstable whe used in iterator, prefer using
+    /// purge and add
     fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I);
+
+    /// Purge elements from a cell with `coord` based on the `indices`. This function will panic if an index is
+    /// out of bonds. The function returns a vector with the dropped elements
+    fn purge<I: Idx>(&mut self, coord:I, indices:&mut [usize]) -> Vec<E>;
+
+    /// Purge elements from a cell with `coord` if the condition `f` is True. It returns a vector with the
+    /// dropped elements 
+    fn purge_if<I: Idx, F> (&mut self, coord:I, f:F) -> Vec<E> 
+    where
+        F: Fn(&E) -> bool;
 }
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
@@ -475,6 +486,19 @@ impl<const N: usize, E: Clone + Cardinality<N>> WriteGrid<N, E> for HashGrid<N, 
         let to_indx = to.flatten(self.grid);
         let dw = self.cells[from_indx].drop_dweller(indx);
         self.cells[to_indx].add_dweller(dw);
+    }
+
+    fn purge<I: Idx>(&mut self, coord:I, indices:&mut [usize]) -> Vec<E> {
+        let cell_index = coord.flatten(self.grid);
+        self.cells[cell_index].purge(indices)
+    }
+
+    fn purge_if<I: Idx, F> (&mut self, coord:I, f:F) -> Vec<E> 
+        where
+            F: Fn(&E) -> bool 
+    {
+        let cell_index = coord.flatten(self.grid);
+        self.cells[cell_index].purge_if(f)
     }
 
 }

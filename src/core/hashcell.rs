@@ -39,6 +39,34 @@ impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
         self.dwellers.remove(indx)
     }
 
+    /// Drops all dwellers listed in `indices`. It returns a vector with the dropped elements
+    pub fn purge(&mut self, indices:&mut [usize]) -> Vec<E> {
+        indices.sort_by(|a, b| b.cmp(a));
+        let elements_to_remove:Vec<E> = indices
+        .iter()
+        .map(|i| self.dwellers.swap_remove(*i))
+        .collect();
+
+        elements_to_remove
+    }
+
+    /// Use a condition to filter the elements. It will return the elements that fulfill the condition, dropping 
+    /// them from the cell and retain those which do not fulfill
+    pub fn purge_if<F>(&mut self, f:F) -> Vec<E> 
+    where
+        F: Fn(&E) -> bool
+    {
+        let elements_to_remove:Vec<E> = self.dwellers
+        .iter()
+        .filter(|x| f(*x))
+        .cloned()
+        .collect();
+        
+        self.dwellers.retain(|x| f(x));
+
+        elements_to_remove
+    }
+
     pub fn population(&self) -> usize {
         self.dwellers.len()
     }
