@@ -97,11 +97,13 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
     /// Returns a slice with the shape *i.e.* number of cells on each dimension, of the grid.
     fn shape(&self) -> [usize; N];
 
+    fn dims(&self) -> Point<N>;
+
 }
 
 /// Common methods for the `HashGrid` and other `HashGrid` based structs to
 /// mutate their content at the grid or cell level.
-pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
+pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>>: ReadGrid<N, E> {
     /// Returns a mutable reference of a slice with the cells inside the grid
     fn get_mut_cells(&mut self) -> &mut [HashCell<N, E>];
 
@@ -125,15 +127,61 @@ pub trait WriteGrid <const N: usize, E: Clone + Cardinality<N>> {
     /// purge and add
     fn move_dweller<I: Idx>(&mut self, indx:usize, from:I, to:I);
 
-    /// Purge elements from a cell with `coord` based on the `indices`. This function will panic if an index is
+    /// Purges elements from a cell with `coord` based on the `indices`. This function will panic if an index is
     /// out of bonds. The function returns a vector with the dropped elements
     fn purge<I: Idx>(&mut self, coord:I, indices:&mut [usize]) -> Vec<E>;
 
-    /// Purge elements from a cell with `coord` if the condition `f` is True. It returns a vector with the
+    /// Purges elements from a cell with `coord` if the condition `f` is True. It returns a vector with the
     /// dropped elements 
     fn purge_if<I: Idx, F> (&mut self, coord:I, f:F) -> Vec<E> 
     where
         F: Fn(&E) -> bool;
+
+    /// Takes a vector of elements with the `Cardinality` trait. It will try to register them to a bounding cell 
+    /// and will apply the periodic bounding box when it is the case. It returns a `Result` enum with empty 
+    /// `Ok()` or a `HashGridError` in case of failure.
+    fn try_allocate(&mut self, mut elements:Vec<E>) -> Result<(), HashGridError> {
+        while let Some(mut element) = elements.pop() {
+            let new_cell_coordinate = self.bounding_cell_coord(element.coord())?;
+            element.set_coord(element.coord().bound(self.dims()));
+            self.add_dweller(new_cell_coordinate, element)
+        }
+
+        Ok(())
+    }
+
+    /// Visits all elements of the grid and reallocates them according to their coordinates. It returns a 
+    /// `Result` enum with `Ok()` or a `HashGridError` in case of failure.
+    fn reallocate(&mut self) -> Result<(), HashGridError> {
+        for coord in self.get_cells_coords() {
+            let mut indices = Vec::with_capacity(self.get_dwellers(coord).len());
+            let mut cells_coords = Vec::with_capacity(self.get_dwellers(coord).len());
+            for (i, dweller) in self.get_dwellers(coord).iter().enumerate() {
+                let bounding_cell = self.bounding_cell_coord(dweller.coord())?;
+                if bounding_cell != coord {
+                    indices.push(i);
+                    cells_coords.push(bounding_cell)
+                }
+            }
+
+            let mut elements = self.purge(coord, &mut indices);
+
+            for _ in (0..elements.len()).rev() {
+                let element = match elements.pop() {
+                    Some(mut x) => {x.set_coord(x.coord().bound(self.dims())); x},
+                    None => break
+                };
+
+                let new_coord = cells_coords.pop().expect("Fatal error, mismatched size during reallocation");
+                
+                self.add_dweller(new_coord, element)
+            }
+
+        }
+
+        Ok(())
+    }
+
 }
 
 /// An N-dimensional, agnostic grid that provides an interface to interact with its cells and the registered
@@ -145,7 +193,7 @@ pub struct HashGrid<const N:usize, E: Clone + Cardinality<N>>
     grid: [usize; N],
     cells:Vec<HashCell<N, E>>,
     periodicity: [PeriodicImage; N],
-    pub dims: Point<N>
+    dims: Point<N>
 }
 
 impl<const N: usize, E: Clone + Cardinality<N>> HashGrid<N, E> {
@@ -392,6 +440,10 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
         self.grid
     }
 
+    fn dims(&self) -> Point<N> {
+        self.dims
+    }
+
     fn cell_anchor<I: Idx>(&self, coord:I) -> Point<N> {
         let cell = coord.deflate(self.grid);
         let cell_size = self.dims / self.grid;
@@ -413,17 +465,6 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
 
     fn bounding_cell_coord(&self, coord:Point<N>) -> Result<[usize; N], HashGridError> {
         let mut cell:[usize; N] = [0; N];
-        //if coord >= Point::from_scalar(0.0) && coord <= self.dims {
-        //    println!("{:?}, {:?}", coord, self.dims);
-        //    let rel_position = coord / self.dims * self.grid;
-        //    for dim in 0..N {
-        //        cell[dim] = rel_position[dim] as usize;
-        //    }
-//
-        //    return Ok(cell)
-//
-        //}
-
         for dim in 0..N {
             
             if coord[dim] >= 0.0 && coord[dim] <= self.dims[dim] {
@@ -431,7 +472,6 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
             }else if coord[dim] < 0.0 {
                 if self.periodicity[dim] == PeriodicImage::LEFT || self.periodicity[dim] == PeriodicImage::BOTH {
                     let rel_cell = coord[dim] / self.dims[dim];  
-                    cell[dim] = ((self.dims[dim] - (rel_cell - rel_cell.ceil())) *  self.grid[dim] as Float) as usize;
                     cell[dim] = ((self.dims[dim] + coord[dim] % self.dims[dim]) / self.dims[dim] * self.grid[dim] as Float) as usize;
                 }else {
                     return Err(HashGridError::OutOfBounds(
@@ -450,7 +490,6 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
                 }
             }
         }
-
         Ok(cell)
     }
 }

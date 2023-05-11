@@ -105,6 +105,10 @@ impl <const N:usize, E: Clone + Cardinality<N>> ReadGrid<N,E> for IsoHashGrid<N,
     fn size(&self) -> usize {
         self.present.size()
     }
+
+    fn dims(&self) -> Point<N> {
+        self.present.dims()
+    }
 }
 
 impl <const N:usize, E: Clone + Cardinality<N>> WriteGrid<N,E> for IsoHashGrid<N, E> {

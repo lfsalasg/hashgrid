@@ -113,7 +113,7 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
             }
 
             for (cell, pi) in neighbors.iter() {
-                let disp = grid.dims * *pi;
+                let disp = grid.dims() * *pi;
                 for j in cell.get_dwellers() {
                     let d = dwellers[i].coord().squared_distance(&(j.coord() + disp));
                     if d > squared_cutoff {

@@ -33,7 +33,7 @@ pub fn relocate_dwellers<const N: usize, E: Cardinality<N> + Clone> (grid:&mut H
 pub fn populate_randomly<const N:usize, E:Clone + Cardinality<N>>(grid: &mut HashGrid<N, E>, mut elements:Vec<E>) {
     let mut rng = thread_rng();
     while let Some(mut element) = elements.pop() {
-        let movement:Point<N> = grid.dims
+        let movement:Point<N> = grid.dims()
             .iter()
             .map(|x| rng.gen_range(0.0..*x))
             .collect();

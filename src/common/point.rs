@@ -54,6 +54,15 @@ impl<const N:usize> Point<N> {
     pub fn to_slice(&self) -> [Float; N] {
         self.0
     }
+
+    pub fn bound(&mut self, grid:Point<N>) -> Point<N> {
+        let mut out = self.clone();
+        for dim in 0..N {
+            out[dim] = ((out[dim] % grid[dim]) + grid[dim]) % grid[dim]
+        }
+
+        out
+    }
 }
 
 impl<const N: usize> Cardinality<N> for Point<N> {

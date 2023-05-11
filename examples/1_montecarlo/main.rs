@@ -1,3 +1,5 @@
+use std::cell;
+
 use plotters::prelude::*; //To use this the fontconfig library should be installed
                           // to install it run apt install libfontconfig1-dev
 use rand::{Rng, thread_rng};
@@ -80,7 +82,7 @@ struct Args {
     n_particles: i32,
     #[arg(short, long, default_value_t = 9.0)]
     cutoff: f32,
-    #[arg(short, long, default_value_t = 60000)]
+    #[arg(short, long, default_value_t = 2)]
     steps: usize
 }
 
@@ -126,7 +128,7 @@ fn main() {
     for cell_index in grid.get_cells_index() {
         for dweller in grid.get_dwellers(cell_index) {
             for neighbor in grid.get_neighbors_dwellers(cell_index) {
-                let d2 = dweller.coord().distance(&neighbor.coord());
+                let d2 = dweller.coord().squared_distance(&neighbor.coord());
                 if d2 <= cutoff2 {
                     let energy = pairwise_energy(158.5, 13.838, d2);
                     total_energy += energy;
@@ -136,14 +138,15 @@ fn main() {
     }
 
     total_energy /= 2.0;
-
     // Now we do the canonical Monte Carlo
     for step in 0..args.steps {
         if step % 100 == 0{
-            history.push((step as f32, total_energy))
+            history.push((step as f32, total_energy));
+            //println!("current energy: {}", total_energy);
         }
-
+        
         for cell_index in grid.get_cells_index() {
+            let mut elements_to_move = Vec::with_capacity(grid[cell_index].population());
             for i in 0..grid[cell_index].population() {
                 movements.0 += 1;
                 let translate = Point3D::new([
@@ -155,37 +158,64 @@ fn main() {
                 let new_pos = grid[cell_index][i].coord() + translate;
                 let mut current_particle_energy = 0.0;
                 let mut proposed_particle_energy = 0.0;
+                
+                
                 for neighbor in grid.get_neighbors_dwellers(cell_index) {
-                    let current_d2 = neighbor.coord().distance(&grid[cell_index][i].coord());
-                    let new_d2 = neighbor.coord().distance(&new_pos);
+                    let current_d2 = neighbor.coord().squared_distance(&grid[cell_index][i].coord());
+                    let new_d2 = neighbor.coord().squared_distance(&new_pos);
+                    
                     if current_d2 <= cutoff2 {
                         current_particle_energy += pairwise_energy(158.5, 13.838, current_d2);
                     }
                     if new_d2 <= cutoff2 {
-                        
-                        proposed_particle_energy += pairwise_energy(158.5, 13.838, new_d2) 
+                        proposed_particle_energy += pairwise_energy(158.5, 13.838, new_d2);
+                         
                     }
                 }
 
                 let new_energy = total_energy + proposed_particle_energy - current_particle_energy;
+                
                 let prob = metropolis_criteria(new_energy, total_energy, args.temperature);
+                
                 if prob > rng.gen() {
                     total_energy = new_energy;
-                    grid[cell_index][i].x = new_pos[0];
-                    grid[cell_index][i].y = new_pos[1];
-                    grid[cell_index][i].z = new_pos[2];
+                    grid[cell_index][i].set_coord(new_pos);
+                    elements_to_move.push(i);
+                    movements.1 += 1;
                 }
-                movements.1 += 1;
+                //  
             }
+            let elements = grid.purge(cell_index, &mut elements_to_move);
             
+            grid.try_allocate(elements).expect("Fatal error: Elements out of bounds")
         }
+
+        
         
         average_energy = (step as f32 * average_energy + total_energy) / (step + 1) as f32
 
     }
-
+    println!("{}", total_energy);
     graph(history).unwrap();
+    for dweller in grid.get_all_dwellers() {
+        //println!("{:?}", dweller.coord())
+    }
+
+    let mut total_energy = 0.0; 
+    for cell_index in grid.get_cells_index() {
+        for dweller in grid.get_dwellers(cell_index) {
+            for neighbor in grid.get_neighbors_dwellers(cell_index) {
+                let d2 = dweller.coord().squared_distance(&neighbor.coord());
+                if d2 <= cutoff2 {
+                    let energy = pairwise_energy(158.5, 13.838, d2);
+                    total_energy += energy;
+                    
+                }
+            }
+        }
+    }
+    println!("{}", total_energy);
     println!("The average energy of the system is {}", average_energy);
-    println!("Number of accepted movements: {} / {}", movements.0, movements.1)
+    println!("Number of accepted movements: {} / {}", movements.1, movements.0)
 
 }
