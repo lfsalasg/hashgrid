@@ -16,6 +16,8 @@ pub type Float = f32;
 /// It also has some useful space and vector related functions (not the fastest though)
 pub trait Cardinality<const N: usize> {
     fn coord(&self) -> Point<N>;
+
+    fn set_coord(&mut self, coord:Point<N>);
 }
 
 /// A trait for the elements capable of indexing the `Hashgrid`. The `flatten` method should take a high dimensional

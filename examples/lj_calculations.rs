@@ -17,6 +17,13 @@ impl Cardinality<3> for LJSphere {
     fn coord(&self) -> Point3D {
         Point3D::new([self.x, self.y, self.z])
     }
+
+    fn set_coord(&mut self, coord:Point3D) {
+        self.x = coord[0];
+        self.y = coord[1];
+        self.z = coord[2];
+        
+    }
 }
 
 fn pairwise_energy(epsilon:f32, squared_sig:f32, squared_distance:f32) -> f32 {
@@ -106,7 +113,7 @@ fn with_cells(p_per_side:u32, sep:f32, cutoff:f32) {
             }
 
             for (cell, pi) in neighbors.iter() {
-                let disp = grid.dims * *pi;
+                let disp = grid.dims() * *pi;
                 for j in cell.get_dwellers() {
                     let d = dwellers[i].coord().squared_distance(&(j.coord() + disp));
                     if d > squared_cutoff {

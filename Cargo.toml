@@ -13,7 +13,12 @@ path = "src/lib.rs"
 [features]
 double-precision = []
 [dependencies]
-rand = "0.8.5"
 serde = {version = "1.0", features = ["derive"]}
-serde_json = "1.0"
 crossbeam = "0.8.2"
+rand = "0.8.5"
+
+[dev-dependencies]
+serde_json = "1.0"
+rand_distr = "*"
+plotters = "0.3.1"
+clap = {version = "4.2.5", features = ["derive"]}

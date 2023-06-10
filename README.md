@@ -44,6 +44,7 @@ let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
         }
     }
 ```
+From here, you can access the elements of the grid using the `get_` and `get_mut_` methods. More complex examples of implementing this API for fast spatial calculations can be found in the `examples` directory. 
 
 # License 
 
