@@ -13,8 +13,10 @@ pub type Point2D = Point<2>;
 pub type Point3D = Point<3>;
 
 impl<const N:usize> Point<N> {
-    pub fn new(coord:[Float; N]) -> Self {
-        Self(coord)
+    pub fn new<T>(coord:[T; N]) -> Self 
+        where Float: From<T> {
+        let c = coord.map(Float::from);
+        Self(c)
     }
     
     pub fn from_scalar(scalar:Float) -> Self {
@@ -58,7 +60,7 @@ impl<const N:usize> Point<N> {
     pub fn bound(&mut self, grid:Point<N>) -> Point<N> {
         let mut out = self.clone();
         for dim in 0..N {
-            out[dim] = ((out[dim] % grid[dim]) + grid[dim]) % grid[dim]
+            out[dim] = ((out[dim] % grid[dim]) + grid[dim]) % grid[dim];
         }
 
         out

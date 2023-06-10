@@ -81,6 +81,9 @@ pub trait ReadGrid <const N: usize, E: Clone + Cardinality<N>> {
 
     /// Returns a vector of references to elements registered in the grid. This vector is a 
     /// collection of the elements neighboring the cell with coordinates `coord`.
+    /// Notice however that for periodic images the coordinates of the neighboring dweller won't change
+    /// **so the usage of this function is disencourage if the `HashGrid` has periodic conditions different from
+    /// `PeriodicImage::NONE`**
     fn get_neighbors_dwellers<I: Idx>(&self , coord:I) -> Vec<&E>;
 
     /// Returns a vector of references to all the elements registered in the grid

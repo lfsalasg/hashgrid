@@ -248,4 +248,33 @@ mod test {
         grid[[1,1]].purge_if(|x| x[1] > half);
         assert_eq!(grid[[1,1]].population(), 40)
     }
+
+
+    #[test]
+    fn test_distance() {
+        let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid([3; 3], [PeriodicImage::BOTH; 3], Point3D::from_scalar(9.0));
+        let mut elements = Vec::with_capacity(27);
+        for i in 0..3 {
+            for j in 0..3 {
+                for k in 0..3 {
+                    elements.push(Point3D::new([
+                        i as f32 * 3.0 + 1.5, 
+                        j as f32 * 3.0 + 1.5, 
+                        k as f32 * 3.0 + 1.5]))
+                }
+            }
+        }
+
+        grid.try_allocate(elements).expect("Something went wrong");
+
+        for dw in grid.get_all_dwellers() {
+            assert!(dw.norm() < 729.0)
+        }
+
+        for (coord, image) in grid.get_neighbors_coords([0,0,1]) {
+            for neighbor in grid.get_dwellers(coord) {
+                println!("{}", grid[[0,0,1]][0].distance(&(*neighbor + grid.dims() * image)))
+            }
+        }
+    }
 }
