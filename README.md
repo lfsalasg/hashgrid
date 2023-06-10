@@ -1,4 +1,5 @@
 # Hashgrid
+[![Rust](https://github.com/lfsalasg/hashgrid/actions/workflows/dev.yml/badge.svg?branch=dev)](https://github.com/lfsalasg/hashgrid/actions/workflows/dev.yml)
 
 *Current version: 0.2.x*
 
