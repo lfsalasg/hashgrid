@@ -1,6 +1,6 @@
 # Hashgrid
 
-*Current version: 0.1.x*
+*Current version: 0.2.x*
 
 The hashgrid library is an implementation of the hash grid data structure written in pure rust. It provides a N-dimensional, agnostic grid abstraction to store and manipulate data in contiguous uniform cells. Some features of this crate include:
 
