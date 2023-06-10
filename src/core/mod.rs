@@ -474,7 +474,6 @@ impl <const N: usize, E: Clone + Cardinality<N>> ReadGrid<N, E> for HashGrid<N, 
                 cell[dim] = (coord[dim] / self.dims[dim] * self.grid[dim] as Float) as usize
             }else if coord[dim] < 0.0 {
                 if self.periodicity[dim] == PeriodicImage::LEFT || self.periodicity[dim] == PeriodicImage::BOTH {
-                    let rel_cell = coord[dim] / self.dims[dim];  
                     cell[dim] = ((self.dims[dim] + coord[dim] % self.dims[dim]) / self.dims[dim] * self.grid[dim] as Float) as usize;
                 }else {
                     return Err(HashGridError::OutOfBounds(
