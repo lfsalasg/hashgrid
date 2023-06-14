@@ -209,7 +209,6 @@ mod test {
         );
 
         let json = serde_json::to_string(&grid).unwrap();
-        println!("{}", json);
         let new_grid: HashGrid<2, Point2D> = serde_json::from_str(&json).unwrap();
         assert_eq!(grid.cells.len(), new_grid.cells.len())
     }
@@ -222,5 +221,60 @@ mod test {
         
         assert_eq!(grid.cell_center([0, 0, 0]), Point3D::from_scalar(1.0/6.0));
         assert_eq!(grid.cell_center([1, 0, 0]), Point3D::new([1.0/2.0, 1.0/6.0, 1.0/6.0]))
+    }
+
+    #[test]
+    fn test_purge() {
+        let mut grid:HashGrid<2, Point2D> = HashGrid::generate_uniform_grid(
+            [3; 2], 
+            [PeriodicImage::NONE; 2], 
+            Point2D::from_scalar(3.0)
+        );
+
+        for i in 1..29 {
+            for j in 1..29 {
+                let p = Point2D::new([i as f32 / 10. , j as f32 / 10.]);
+                let cell_coord = grid.bounding_cell_coord(p).expect("Something went wrong");
+                grid[cell_coord].add_dweller(p);
+            }
+        }
+
+        assert_eq!(grid.population(), 784);
+
+        grid[0].purge(&mut [0, 1, 2]);
+        assert_eq!(grid[0].population(), 78);
+        let half = grid.dims[1] / 2.0;
+        
+        grid[[1,1]].purge_if(|x| x[1] > half);
+        assert_eq!(grid[[1,1]].population(), 40)
+    }
+
+
+    #[test]
+    fn test_distance() {
+        let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid([3; 3], [PeriodicImage::BOTH; 3], Point3D::from_scalar(9.0));
+        let mut elements = Vec::with_capacity(27);
+        for i in 0..3 {
+            for j in 0..3 {
+                for k in 0..3 {
+                    elements.push(Point3D::new([
+                        i as f32 * 3.0 + 1.5, 
+                        j as f32 * 3.0 + 1.5, 
+                        k as f32 * 3.0 + 1.5]))
+                }
+            }
+        }
+
+        grid.try_allocate(elements).expect("Something went wrong");
+
+        for dw in grid.get_all_dwellers() {
+            assert!(dw.norm() < 729.0)
+        }
+
+        for (coord, image) in grid.get_neighbors_coords([0,0,1]) {
+            for neighbor in grid.get_dwellers(coord) {
+                println!("{}", grid[[0,0,1]][0].distance(&(*neighbor + grid.dims() * image)))
+            }
+        }
     }
 }

@@ -16,6 +16,8 @@ pub type Float = f32;
 /// It also has some useful space and vector related functions (not the fastest though)
 pub trait Cardinality<const N: usize> {
     fn coord(&self) -> Point<N>;
+
+    fn set_coord(&mut self, coord:Point<N>);
 }
 
 /// A trait for the elements capable of indexing the `Hashgrid`. The `flatten` method should take a high dimensional
@@ -23,7 +25,7 @@ pub trait Cardinality<const N: usize> {
 /// the grid. The `deflate` method tries to convert an index of a cell to a high dimensional index using the size of
 /// the grid.
 /// 
-/// For readiness, if the dimensionality fails, it would panic instead of returning a `Result` type. 
+/// For readiness, if the dimensionality fails, it will panic instead of returning a `Result` type. 
 pub trait Idx {
     fn flatten<const N: usize>(&self, grid:[usize; N]) -> usize;
     fn deflate<const N: usize>(&self, grid:[usize;N]) -> [usize; N];

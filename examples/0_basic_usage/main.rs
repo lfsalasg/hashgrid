@@ -1,5 +1,3 @@
-use std::cell;
-
 use rand::{thread_rng, Rng};
 
 use hashgrid::{HashGrid, PeriodicImage, ReadGrid, WriteGrid};

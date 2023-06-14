@@ -1,6 +1,7 @@
 # Hashgrid
+[![Rust](https://github.com/lfsalasg/hashgrid/actions/workflows/dev.yml/badge.svg?branch=dev)](https://github.com/lfsalasg/hashgrid/actions/workflows/dev.yml)
 
-*Current version: 0.1.x*
+*Current version: 0.2.x*
 
 The hashgrid library is an implementation of the hash grid data structure written in pure rust. It provides a N-dimensional, agnostic grid abstraction to store and manipulate data in contiguous uniform cells. Some features of this crate include:
 
@@ -44,6 +45,7 @@ let mut grid:HashGrid<3, Point3D> = HashGrid::generate_uniform_grid(
         }
     }
 ```
+From here, you can access the elements of the grid using the `get_` and `get_mut_` methods. More complex examples of implementing this API for fast spatial calculations can be found in the `examples` directory. 
 
 # License 
 

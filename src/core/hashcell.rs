@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde::de::{Deserialize, Deserializer};
 
@@ -19,30 +21,79 @@ impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
         }
     }
 
+    /// Returns a slice of all elements inside the cell
     pub fn get_dwellers(&self) -> &[E] {
         self.dwellers.as_slice()
     }
 
+    /// Returns a mutable slice of all elements inside the cell
     pub fn get_mut_dwellers(&mut self) -> &mut [E] {
         self.dwellers.as_mut_slice()
     }
 
+    /// Overwrites the dwellers registered in this cell
     pub fn set_dwellers(&mut self, dwellers:Vec<E>) {
         self.dwellers = dwellers
     }
 
+    /// Adds a new dweller in the cell. It is added at the end of the
+    /// collection
     pub fn add_dweller(&mut self, dweller:E) {
         self.dwellers.push(dweller)
     }
 
+    /// This method removes the dweller of index `indx` from the cell, it
+    /// will panic if the indx is equal or greater than the number of dwellers
+    /// registered in the cell
     pub fn drop_dweller(&mut self, indx:usize) -> E{
         self.dwellers.remove(indx)
+    }
+
+    /// Drops all dwellers listed in `indices`. It returns a vector with the dropped elements
+    pub fn purge(&mut self, indices:&mut [usize]) -> Vec<E> {
+        indices.sort_by(|a, b| b.cmp(a));
+        let elements_to_remove:Vec<E> = indices
+        .iter()
+        .map(|i| self.dwellers.swap_remove(*i))
+        .collect();
+
+        elements_to_remove
+    }
+
+    /// Use a condition to filter the elements. It will return the elements that fulfill the condition, dropping 
+    /// them from the cell and retain those which do not fulfill
+    pub fn purge_if<F>(&mut self, f:F) -> Vec<E> 
+    where
+        F: Fn(&E) -> bool
+    {
+        let elements_to_remove:Vec<E> = self.dwellers
+        .iter()
+        .filter(|x| f(*x))
+        .cloned()
+        .collect();
+        
+        self.dwellers.retain(|x| f(x));
+
+        elements_to_remove
     }
 
     pub fn population(&self) -> usize {
         self.dwellers.len()
     }
     
+}
+
+impl<const N:usize, E: Clone + Cardinality<N>> Index<usize> for HashCell<N, E> {
+    type Output = E;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.dwellers[index]
+    }
+}
+
+impl<const N:usize, E: Clone + Cardinality<N>> IndexMut<usize> for HashCell<N, E> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.dwellers[index]   
+    }
 }
 
 

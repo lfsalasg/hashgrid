@@ -13,14 +13,18 @@ pub type Point2D = Point<2>;
 pub type Point3D = Point<3>;
 
 impl<const N:usize> Point<N> {
-    pub fn new(coord:[Float; N]) -> Self {
-        Self(coord)
+    pub fn new<T>(coord:[T; N]) -> Self 
+        where Float: From<T> {
+        let c = coord.map(Float::from);
+        Self(c)
     }
-    
+
+    /// Creates a point with all dimensions equal to `scalar`    
     pub fn from_scalar(scalar:Float) -> Self {
         Self([scalar; N])
     }
 
+    /// Calculates the square of the eucleadian distance between `self` and another `Point<N>`
     pub fn squared_distance(&self, rhs:&Point<N>) -> Float {
         self.0.iter()
         .zip(rhs.0.iter())
@@ -28,10 +32,12 @@ impl<const N:usize> Point<N> {
         .sum()
     }
 
+    /// Calculates the eucledian distance between `self` and another `Point<N>`
     pub fn distance(&self, rhs:&Point<N>) -> Float {
         self.squared_distance(rhs).sqrt()
     }
 
+    /// Calculates the eucledian distance between `self` and the origin
     pub fn norm(&self) -> Float{
         self.distance(&Point::from_scalar(0.0))
     }
@@ -54,11 +60,27 @@ impl<const N:usize> Point<N> {
     pub fn to_slice(&self) -> [Float; N] {
         self.0
     }
+    
+    /// Given a point of dimensions N, this function scales the point position so that
+    /// it is bounded by a box of dimensions `grid`. Notice that it will scale each dimension
+    /// independently
+    pub fn bound(&mut self, grid:Point<N>) -> Point<N> {
+        let mut out = self.clone();
+        for dim in 0..N {
+            out[dim] = ((out[dim] % grid[dim]) + grid[dim]) % grid[dim];
+        }
+
+        out
+    }
 }
 
 impl<const N: usize> Cardinality<N> for Point<N> {
     fn coord(&self) -> Self {
         *self
+    }
+
+    fn set_coord(&mut self, coord:Point<N>) {
+        *self = coord;
     }
 }
 
@@ -252,6 +274,29 @@ impl<const N: usize> Index<usize> for Point<N> {
 impl<const N: usize> IndexMut<usize> for Point<N> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
+    }
+}
+
+impl<const N:usize> IntoIterator for Point<N> {
+    type Item = Float;
+    type IntoIter = std::array::IntoIter<Self::Item, N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<const N:usize> FromIterator<Float> for Point<N> {
+    fn from_iter<I: IntoIterator<Item=Float>>(iter: I) -> Self {
+        let mut k:usize = 0;
+        let mut raw = [0.0; N];
+
+        for i in iter {
+            raw[k] = i;
+            k += 1;
+        }   
+
+        Point(raw)
     }
 }
 
