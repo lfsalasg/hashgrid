@@ -21,22 +21,30 @@ impl<const N:usize, E: Clone + Cardinality<N>> HashCell<N, E> {
         }
     }
 
+    /// Returns a slice of all elements inside the cell
     pub fn get_dwellers(&self) -> &[E] {
         self.dwellers.as_slice()
     }
 
+    /// Returns a mutable slice of all elements inside the cell
     pub fn get_mut_dwellers(&mut self) -> &mut [E] {
         self.dwellers.as_mut_slice()
     }
 
+    /// Overwrites the dwellers registered in this cell
     pub fn set_dwellers(&mut self, dwellers:Vec<E>) {
         self.dwellers = dwellers
     }
 
+    /// Adds a new dweller in the cell. It is added at the end of the
+    /// collection
     pub fn add_dweller(&mut self, dweller:E) {
         self.dwellers.push(dweller)
     }
 
+    /// This method removes the dweller of index `indx` from the cell, it
+    /// will panic if the indx is equal or greater than the number of dwellers
+    /// registered in the cell
     pub fn drop_dweller(&mut self, indx:usize) -> E{
         self.dwellers.remove(indx)
     }
@@ -87,7 +95,6 @@ impl<const N:usize, E: Clone + Cardinality<N>> IndexMut<usize> for HashCell<N, E
         &mut self.dwellers[index]   
     }
 }
-
 
 
 impl<const N: usize, E: Clone + Serialize + Cardinality<N>> Serialize for HashCell<N, E> {

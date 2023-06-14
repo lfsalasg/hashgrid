@@ -80,7 +80,7 @@ struct Args {
     n_particles: i32,
     #[arg(short, long, default_value_t = 12.0)]
     cutoff: f32,
-    #[arg(short, long, default_value_t = 1000)]
+    #[arg(short, long, default_value_t = 50000)]
     steps: usize
 }
 
@@ -159,9 +159,9 @@ fn main() {
 
     // Now we do the canonical Monte Carlo
     for step in 0..args.steps {
-        if step % 10 == 0{
+        if step % 50 == 0{
             history.push((step as f32, total_energy));
-            //println!("current energy: {}", total_energy);
+            total_energy = calc_box_energy(&grid, cutoff2)
         }
         
         for cell_index in grid.get_cells_index() {
@@ -233,7 +233,7 @@ fn main() {
         average_energy = (average_energy + total_energy) / 2.0;
 
     }
-    println!("{:?}",history);
+    //println!("{:?}",history);
     graph(history).unwrap();
     
     //println!("{}", total_energy);

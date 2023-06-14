@@ -25,7 +25,7 @@ pub trait Cardinality<const N: usize> {
 /// the grid. The `deflate` method tries to convert an index of a cell to a high dimensional index using the size of
 /// the grid.
 /// 
-/// For readiness, if the dimensionality fails, it would panic instead of returning a `Result` type. 
+/// For readiness, if the dimensionality fails, it will panic instead of returning a `Result` type. 
 pub trait Idx {
     fn flatten<const N: usize>(&self, grid:[usize; N]) -> usize;
     fn deflate<const N: usize>(&self, grid:[usize;N]) -> [usize; N];

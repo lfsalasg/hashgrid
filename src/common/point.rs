@@ -18,11 +18,13 @@ impl<const N:usize> Point<N> {
         let c = coord.map(Float::from);
         Self(c)
     }
-    
+
+    /// Creates a point with all dimensions equal to `scalar`    
     pub fn from_scalar(scalar:Float) -> Self {
         Self([scalar; N])
     }
 
+    /// Calculates the square of the eucleadian distance between `self` and another `Point<N>`
     pub fn squared_distance(&self, rhs:&Point<N>) -> Float {
         self.0.iter()
         .zip(rhs.0.iter())
@@ -30,10 +32,12 @@ impl<const N:usize> Point<N> {
         .sum()
     }
 
+    /// Calculates the eucledian distance between `self` and another `Point<N>`
     pub fn distance(&self, rhs:&Point<N>) -> Float {
         self.squared_distance(rhs).sqrt()
     }
 
+    /// Calculates the eucledian distance between `self` and the origin
     pub fn norm(&self) -> Float{
         self.distance(&Point::from_scalar(0.0))
     }
@@ -56,7 +60,10 @@ impl<const N:usize> Point<N> {
     pub fn to_slice(&self) -> [Float; N] {
         self.0
     }
-
+    
+    /// Given a point of dimensions N, this function scales the point position so that
+    /// it is bounded by a box of dimensions `grid`. Notice that it will scale each dimension
+    /// independently
     pub fn bound(&mut self, grid:Point<N>) -> Point<N> {
         let mut out = self.clone();
         for dim in 0..N {
